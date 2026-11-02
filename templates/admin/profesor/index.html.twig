@@ -7,10 +7,10 @@
     <div class="page-header">
         <div>
             <h1>Plantel docente</h1>
-            <p class="meta">Alta, baja, cursos y horarios por división.</p>
+            <p class="meta">Tocá un profesor para ver su ficha, editarlo o gestionar cursos.</p>
         </div>
         <div class="page-header__actions">
-            <a class="btn btn-accent" href="{{ path('admin_profesor_new') }}">+ Nuevo profesor</a>
+            <a class="btn btn-accent" href="{{ path('admin_profesor_new') }}"><i class="bi bi-person-plus" aria-hidden="true"></i> Nuevo profesor</a>
         </div>
     </div>
 
@@ -34,28 +34,47 @@
             <div class="empty-state__icon" aria-hidden="true">👤</div>
             <strong>Todavía no hay profesores</strong>
             <span>Cargá el primero para empezar a registrar asistencia.</span>
-            <p style="margin-top:1rem;"><a class="btn" href="{{ path('admin_profesor_new') }}">Crear profesor</a></p>
+            <p style="margin-top:1rem;"><a class="btn" href="{{ path('admin_profesor_new') }}"><i class="bi bi-person-plus" aria-hidden="true"></i> Crear profesor</a></p>
         </div>
     {% else %}
         <div class="table-wrap table-desktop">
-            <table class="data-table">
+            <table class="data-table data-table--clickable">
                 <thead>
                     <tr>
+                        <th></th>
                         <th>DNI</th>
                         <th>Apellido y nombre</th>
                         <th>Cursos</th>
                         <th>Estado</th>
-                        <th>Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for profesor in profesores %}
                         {% set cursosBusqueda = '' %}
+                        {% set cursosEtiquetas = [] %}
                         {% for asignacion in profesor.asignaciones %}
                             {% set cursosBusqueda = cursosBusqueda ~ ' ' ~ asignacion.etiqueta %}
+                            {% set cursosEtiquetas = cursosEtiquetas|merge([asignacion.etiqueta]) %}
                         {% endfor %}
-                        <tr data-search="{{ (profesor.dni ~ ' ' ~ profesor.nombreCompleto ~ cursosBusqueda)|lower }}"
-                            data-estado="{{ profesor.isActive ? 'activo' : 'baja' }}">
+                        <tr class="teacher-row"
+                            tabindex="0"
+                            role="button"
+                            aria-haspopup="dialog"
+                            data-search="{{ (profesor.dni ~ ' ' ~ profesor.nombreCompleto ~ cursosBusqueda)|lower }}"
+                            data-estado="{{ profesor.isActive ? 'activo' : 'baja' }}"
+                            data-profesor-id="{{ profesor.id }}"
+                            data-profesor-nombre="{{ profesor.nombreCompleto }}"
+                            data-profesor-dni="{{ profesor.dni }}"
+                            data-profesor-activo="{{ profesor.isActive ? '1' : '0' }}"
+                            data-profesor-foto="{{ profesor.foto ? asset(profesor.foto) : '' }}"
+                            data-profesor-iniciales="{{ profesor.iniciales }}"
+                            data-profesor-cursos="{{ cursosEtiquetas|join(' · ') }}"
+                            data-show-url="{{ path('admin_profesor_show', {id: profesor.id}) }}"
+                            data-edit-url="{{ path('admin_profesor_edit', {id: profesor.id}) }}"
+                            data-cursos-url="{{ path('admin_horario_edit', {id: profesor.id}) }}"
+                            data-estado-url="{{ path('admin_profesor_estado', {id: profesor.id}) }}"
+                            data-estado-token="{{ csrf_token('profesor_estado_' ~ profesor.id) }}">
+                            <td>{% include 'partials/avatar.html.twig' with { persona: profesor, size: 'list' } only %}</td>
                             <td><code>{{ profesor.dni }}</code></td>
                             <td><strong>{{ profesor.nombreCompleto }}</strong></td>
                             <td>
@@ -72,16 +91,6 @@
                                     <span class="badge badge-off">De baja</span>
                                 {% endif %}
                             </td>
-                            <td class="row-actions">
-                                <a class="btn btn-ghost btn-sm" href="{{ path('admin_profesor_edit', {id: profesor.id}) }}">Editar</a>
-                                <a class="btn btn-ghost btn-sm" href="{{ path('admin_horario_edit', {id: profesor.id}) }}">Cursos</a>
-                                <form method="post" action="{{ path('admin_profesor_estado', {id: profesor.id}) }}">
-                                    <input type="hidden" name="_token" value="{{ csrf_token('profesor_estado_' ~ profesor.id) }}">
-                                    <button class="btn btn-sm {{ profesor.isActive ? 'btn-danger' : 'btn-ok' }}" type="submit">
-                                        {{ profesor.isActive ? 'Dar de baja' : 'Reactivar' }}
-                                    </button>
-                                </form>
-                            </td>
                         </tr>
                     {% endfor %}
                 </tbody>
@@ -91,16 +100,36 @@
         <div class="teacher-cards" id="teacher-cards">
             {% for profesor in profesores %}
                 {% set cursosBusqueda = '' %}
+                {% set cursosEtiquetas = [] %}
                 {% for asignacion in profesor.asignaciones %}
                     {% set cursosBusqueda = cursosBusqueda ~ ' ' ~ asignacion.etiqueta %}
+                    {% set cursosEtiquetas = cursosEtiquetas|merge([asignacion.etiqueta]) %}
                 {% endfor %}
-                <article class="teacher-card"
+                <article class="teacher-card teacher-row"
+                         tabindex="0"
+                         role="button"
+                         aria-haspopup="dialog"
                          data-search="{{ (profesor.dni ~ ' ' ~ profesor.nombreCompleto ~ cursosBusqueda)|lower }}"
-                         data-estado="{{ profesor.isActive ? 'activo' : 'baja' }}">
+                         data-estado="{{ profesor.isActive ? 'activo' : 'baja' }}"
+                         data-profesor-id="{{ profesor.id }}"
+                         data-profesor-nombre="{{ profesor.nombreCompleto }}"
+                         data-profesor-dni="{{ profesor.dni }}"
+                         data-profesor-activo="{{ profesor.isActive ? '1' : '0' }}"
+                         data-profesor-foto="{{ profesor.foto ? asset(profesor.foto) : '' }}"
+                         data-profesor-iniciales="{{ profesor.iniciales }}"
+                         data-profesor-cursos="{{ cursosEtiquetas|join(' · ') }}"
+                         data-show-url="{{ path('admin_profesor_show', {id: profesor.id}) }}"
+                         data-edit-url="{{ path('admin_profesor_edit', {id: profesor.id}) }}"
+                         data-cursos-url="{{ path('admin_horario_edit', {id: profesor.id}) }}"
+                         data-estado-url="{{ path('admin_profesor_estado', {id: profesor.id}) }}"
+                         data-estado-token="{{ csrf_token('profesor_estado_' ~ profesor.id) }}">
                     <div class="teacher-card__top">
-                        <div>
-                            <div class="teacher-card__name">{{ profesor.nombreCompleto }}</div>
-                            <div class="meta">DNI {{ profesor.dni }}</div>
+                        <div class="teacher-card__identity">
+                            {% include 'partials/avatar.html.twig' with { persona: profesor, size: 'list' } only %}
+                            <div>
+                                <div class="teacher-card__name">{{ profesor.nombreCompleto }}</div>
+                                <div class="meta">DNI {{ profesor.dni }}</div>
+                            </div>
                         </div>
                         {% if profesor.isActive %}
                             <span class="badge badge-on">Activo</span>
@@ -115,18 +144,36 @@
                             <span class="meta">Sin cursos</span>
                         {% endfor %}
                     </div>
-                    <div class="row-actions" style="margin-top:0.85rem;">
-                        <a class="btn btn-ghost btn-sm" href="{{ path('admin_profesor_edit', {id: profesor.id}) }}">Editar</a>
-                        <a class="btn btn-ghost btn-sm" href="{{ path('admin_horario_edit', {id: profesor.id}) }}">Cursos</a>
-                        <form method="post" action="{{ path('admin_profesor_estado', {id: profesor.id}) }}">
-                            <input type="hidden" name="_token" value="{{ csrf_token('profesor_estado_' ~ profesor.id) }}">
-                            <button class="btn btn-sm {{ profesor.isActive ? 'btn-danger' : 'btn-ok' }}" type="submit">
-                                {{ profesor.isActive ? 'Dar de baja' : 'Reactivar' }}
-                            </button>
-                        </form>
-                    </div>
                 </article>
             {% endfor %}
+        </div>
+
+        <div class="modal" id="modal-profesor-acciones" hidden aria-hidden="true">
+            <div class="modal__backdrop" data-close-modal tabindex="-1"></div>
+            <div class="modal__dialog modal__dialog--actions" role="dialog" aria-modal="true" aria-labelledby="modal-profesor-title">
+                <header class="modal__header">
+                    <div class="teacher-modal__identity">
+                        <span class="avatar avatar--list avatar--fallback" id="modal-profesor-avatar" aria-hidden="true">—</span>
+                        <div>
+                            <h2 id="modal-profesor-title">Profesor</h2>
+                            <p class="meta" id="modal-profesor-meta"></p>
+                        </div>
+                    </div>
+                    <button type="button" class="modal__close" data-close-modal aria-label="Cerrar">×</button>
+                </header>
+                <div class="modal__body">
+                    <p class="meta" id="modal-profesor-cursos" style="margin-top:0;"></p>
+                    <div class="teacher-actions">
+                        <a class="btn teacher-actions__btn teacher-actions__btn--accent" id="modal-btn-ver" href="#"><i class="bi bi-person-vcard" aria-hidden="true"></i> Ver ficha</a>
+                        <a class="btn teacher-actions__btn" id="modal-btn-editar" href="#"><i class="bi bi-pencil-square" aria-hidden="true"></i> Editar</a>
+                        <a class="btn teacher-actions__btn" id="modal-btn-cursos" href="#"><i class="bi bi-calendar-week" aria-hidden="true"></i> Cursos</a>
+                        <form method="post" id="modal-form-estado" class="teacher-actions__full">
+                            <input type="hidden" name="_token" id="modal-estado-token" value="">
+                            <button class="btn teacher-actions__btn teacher-actions__btn--danger" id="modal-btn-estado" type="submit"><i class="bi bi-person-x" aria-hidden="true"></i> Dar de baja</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
         </div>
     {% endif %}
 
@@ -134,8 +181,8 @@
         (function () {
             var q = document.getElementById('filtro-profesores');
             var estado = document.getElementById('filtro-estado');
-            if (!q || !estado) return;
-            function apply() {
+            function applyFilters() {
+                if (!q || !estado) return;
                 var text = q.value.trim().toLowerCase();
                 var st = estado.value;
                 document.querySelectorAll('[data-search][data-estado]').forEach(function (el) {
@@ -144,8 +191,81 @@
                     el.hidden = !(okText && okEstado);
                 });
             }
-            q.addEventListener('input', apply);
-            estado.addEventListener('change', apply);
+            if (q) q.addEventListener('input', applyFilters);
+            if (estado) estado.addEventListener('change', applyFilters);
+
+            var modal = document.getElementById('modal-profesor-acciones');
+            if (!modal) return;
+            var lastFocus = null;
+            var title = document.getElementById('modal-profesor-title');
+            var meta = document.getElementById('modal-profesor-meta');
+            var cursos = document.getElementById('modal-profesor-cursos');
+            var avatar = document.getElementById('modal-profesor-avatar');
+            var btnVer = document.getElementById('modal-btn-ver');
+            var btnEditar = document.getElementById('modal-btn-editar');
+            var btnCursos = document.getElementById('modal-btn-cursos');
+            var formEstado = document.getElementById('modal-form-estado');
+            var tokenInput = document.getElementById('modal-estado-token');
+            var btnEstado = document.getElementById('modal-btn-estado');
+
+            function openModal(el) {
+                lastFocus = document.activeElement;
+                var activo = el.getAttribute('data-profesor-activo') === '1';
+                var foto = el.getAttribute('data-profesor-foto') || '';
+                var iniciales = el.getAttribute('data-profesor-iniciales') || '';
+                var cursosTxt = el.getAttribute('data-profesor-cursos') || '';
+
+                title.textContent = el.getAttribute('data-profesor-nombre') || 'Profesor';
+                meta.textContent = 'DNI ' + (el.getAttribute('data-profesor-dni') || '');
+                cursos.textContent = cursosTxt ? ('Cursos: ' + cursosTxt) : 'Sin cursos asignados';
+
+                if (foto) {
+                    avatar.outerHTML = '<img class="avatar avatar--list" id="modal-profesor-avatar" src="' + foto + '" alt="">';
+                    avatar = document.getElementById('modal-profesor-avatar');
+                } else {
+                    avatar.outerHTML = '<span class="avatar avatar--list avatar--fallback" id="modal-profesor-avatar" aria-hidden="true">' + iniciales + '</span>';
+                    avatar = document.getElementById('modal-profesor-avatar');
+                }
+
+                btnVer.href = el.getAttribute('data-show-url');
+                btnEditar.href = el.getAttribute('data-edit-url');
+                btnCursos.href = el.getAttribute('data-cursos-url');
+                formEstado.action = el.getAttribute('data-estado-url');
+                tokenInput.value = el.getAttribute('data-estado-token');
+                btnEstado.innerHTML = activo
+                    ? '<i class="bi bi-person-x" aria-hidden="true"></i> Dar de baja'
+                    : '<i class="bi bi-person-check" aria-hidden="true"></i> Reactivar';
+                btnEstado.className = 'btn teacher-actions__btn ' + (activo ? 'teacher-actions__btn--danger' : 'teacher-actions__btn--ok');
+
+                modal.hidden = false;
+                modal.setAttribute('aria-hidden', 'false');
+                document.body.classList.add('modal-open');
+                window.setTimeout(function () { btnVer.focus(); }, 10);
+            }
+
+            function closeModal() {
+                modal.hidden = true;
+                modal.setAttribute('aria-hidden', 'true');
+                document.body.classList.remove('modal-open');
+                if (lastFocus && typeof lastFocus.focus === 'function') lastFocus.focus();
+            }
+
+            document.querySelectorAll('.teacher-row').forEach(function (el) {
+                el.addEventListener('click', function () { openModal(el); });
+                el.addEventListener('keydown', function (event) {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        openModal(el);
+                    }
+                });
+            });
+
+            modal.querySelectorAll('[data-close-modal]').forEach(function (el) {
+                el.addEventListener('click', closeModal);
+            });
+            document.addEventListener('keydown', function (event) {
+                if (event.key === 'Escape' && !modal.hidden) closeModal();
+            });
         })();
     </script>
 {% endblock %}

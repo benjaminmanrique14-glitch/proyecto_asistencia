@@ -4,102 +4,306 @@
 {% block topbar_title %}Cursos y horarios{% endblock %}
 
 {% block body %}
-    <div class="page-header">
-        <div>
-            <h1>Cursos de {{ profesor.nombreCompleto }}</h1>
-            <p class="meta">Cada curso tiene su propio horario. Divisiones 1ra–3ra: mañana · 4ta–6ta: tarde. Esos días alimentan el cálculo de ausencias.</p>
+    {% set startEditing = error ? true : false %}
+    <div class="schedule-editor {{ startEditing ? 'is-editing' : 'is-view' }}" id="schedule-editor" data-editing="{{ startEditing ? '1' : '0' }}">
+        <div class="page-header">
+            <div class="teacher-hero">
+                {% include 'partials/avatar.html.twig' with { persona: profesor, size: 'lg' } only %}
+                <div>
+                    <h1>Cursos de {{ profesor.nombreCompleto }}</h1>
+                    <p class="meta schedule-editor__hint-view">DNI {{ profesor.dni }} · Vista de cursos y horarios. Presioná <em>Editar</em> para modificarlos.</p>
+                    <p class="meta schedule-editor__hint-edit">DNI {{ profesor.dni }} · Cada tarjeta es un curso. Activá los días que dicta y ajustá entrada/salida.</p>
+                </div>
+            </div>
+            <div class="page-header__actions">
+                <button type="button" class="btn btn-accent schedule-editor__btn-edit" id="btn-editar-horarios"{{ startEditing ? ' hidden' : '' }}>
+                    <i class="bi bi-pencil-square" aria-hidden="true"></i> Editar
+                </button>
+                <button type="button" class="btn btn-accent schedule-editor__btn-add" id="btn-abrir-curso" aria-haspopup="dialog" aria-controls="modal-agregar-curso"{{ startEditing ? '' : ' hidden' }}>
+                    <i class="bi bi-plus-lg" aria-hidden="true"></i> Agregar curso
+                </button>
+                <a class="btn btn-ghost" href="{{ path('admin_profesor_show', {id: profesor.id}) }}"><i class="bi bi-arrow-left" aria-hidden="true"></i> Volver</a>
+            </div>
         </div>
-        <a class="btn btn-ghost" href="{{ path('admin_profesor_index') }}">Volver</a>
-    </div>
 
-    {% if error %}
-        <div class="alert alert-error" role="alert">{{ error }}</div>
-    {% endif %}
+        {% if error %}
+            <div class="alert alert-error" role="alert">{{ error }}</div>
+        {% endif %}
 
-    <form method="post">
-        {% for bloque in bloques %}
-            {% set asignacion = bloque.asignacion %}
-            <section class="curso-block">
-                <div class="cal-nav" style="margin-bottom:0.75rem;">
-                    <h2>
-                        {{ asignacion.etiqueta }}
-                        <span class="badge badge-course">{{ asignacion.division.turnoLabel }}</span>
-                    </h2>
-                    <label class="checkline"><input type="checkbox" name="curso[{{ asignacion.id }}][quitar]" value="1"> Quitar curso</label>
+        <form method="post" id="form-horarios">
+            {% if bloques|length %}
+                <div class="schedule-legend" aria-hidden="true">
+                    <span><i class="legend-dot legend-dot--on"></i> Día con clase</span>
+                    <span><i class="legend-dot legend-dot--off"></i> Sin clase</span>
+                    <span>Mañana: div. 1ra–3ra · Tarde: div. 4ta–6ta</span>
                 </div>
-                {% for numero, nombre in dias %}
-                    {% set horario = bloque.porDia[numero]|default(null) %}
-                    <div class="horario-row">
-                        <label class="checkline">
-                            <input type="checkbox" name="curso[{{ asignacion.id }}][dias][]" value="{{ numero }}" {{ horario ? 'checked' : '' }}>
-                            {{ nombre }}
+            {% endif %}
+
+            {% for bloque in bloques %}
+                {% set asignacion = bloque.asignacion %}
+                {% set turno = asignacion.division.turno %}
+                <section class="schedule-card schedule-card--{{ turno }}">
+                    <header class="schedule-card__head">
+                        <div class="schedule-card__title">
+                            <span class="schedule-card__mark" aria-hidden="true">{{ asignacion.curso.nombre|slice(0, 2) }}</span>
+                            <div>
+                                <h2>{{ asignacion.etiqueta }}</h2>
+                                <div class="schedule-card__meta">
+                                    <span class="badge badge-course">{{ asignacion.division.turnoLabel }}</span>
+                                    <span class="meta">Horario semanal</span>
+                                </div>
+                            </div>
+                        </div>
+                        <label class="schedule-remove">
+                            <input type="checkbox" name="curso[{{ asignacion.id }}][quitar]" value="1" data-edit-control{{ startEditing ? '' : ' disabled' }}>
+                            <span class="schedule-remove__chip">
+                                <span class="schedule-remove__ui" aria-hidden="true"></span>
+                                <span class="schedule-remove__text">Quitar</span>
+                            </span>
                         </label>
-                        <div>
-                            <label>Entrada</label>
-                            <input type="time" name="curso[{{ asignacion.id }}][entrada][{{ numero }}]" value="{{ horario ? horario.horaEntrada|date('H:i') : asignacion.division.horaEntradaSugerida }}">
-                        </div>
-                        <div>
-                            <label>Salida</label>
-                            <input type="time" name="curso[{{ asignacion.id }}][salida][{{ numero }}]" value="{{ horario ? horario.horaSalida|date('H:i') : asignacion.division.horaSalidaSugerida }}">
-                        </div>
-                    </div>
-                {% endfor %}
-            </section>
-        {% else %}
-            <div class="card empty-state" style="margin-bottom:1rem;">
-                <div class="empty-state__icon" aria-hidden="true">📚</div>
-                <strong>Sin cursos asignados</strong>
-                <span>Agregá el primero con el formulario de abajo.</span>
-            </div>
-        {% endfor %}
+                    </header>
 
-        <section class="curso-block">
-            <h2>Agregar curso</h2>
-            <div class="horario-row">
-                <div>
-                    <label for="nuevo_curso">Curso</label>
-                    <select id="nuevo_curso" name="nuevo_curso">
-                        <option value="">Sin agregar</option>
-                        {% for curso in cursos %}
-                            <option value="{{ curso.id }}">{{ curso.nombre }}</option>
+                    <div class="schedule-grid" role="group" aria-label="Horario semanal de {{ asignacion.etiqueta }}">
+                        {% for numero, nombre in dias %}
+                            {% set horario = bloque.porDia[numero]|default(null) %}
+                            <article class="day-slot {{ horario ? 'is-active' : 'is-off' }}">
+                                <label class="day-slot__toggle">
+                                    <input type="checkbox"
+                                           name="curso[{{ asignacion.id }}][dias][]"
+                                           value="{{ numero }}"
+                                           {{ horario ? 'checked' : '' }}
+                                           data-day-toggle
+                                           data-edit-control
+                                           {{ startEditing ? '' : 'disabled' }}>
+                                    <span class="day-slot__check" aria-hidden="true"></span>
+                                    <span class="day-slot__name">
+                                        <span class="day-slot__abbr">{{ nombre|slice(0, 3) }}</span>
+                                        <span class="day-slot__full">{{ nombre }}</span>
+                                    </span>
+                                </label>
+                                <div class="day-slot__times">
+                                    <div class="day-slot__field">
+                                        <label>Entrada</label>
+                                        <input type="time"
+                                               name="curso[{{ asignacion.id }}][entrada][{{ numero }}]"
+                                               value="{{ horario ? horario.horaEntrada|date('H:i') : asignacion.division.horaEntradaSugerida }}"
+                                               {{ horario and startEditing ? '' : 'disabled' }}
+                                               data-day-time
+                                               data-edit-control
+                                               data-day-on="{{ horario ? '1' : '0' }}">
+                                    </div>
+                                    <div class="day-slot__field">
+                                        <label>Salida</label>
+                                        <input type="time"
+                                               name="curso[{{ asignacion.id }}][salida][{{ numero }}]"
+                                               value="{{ horario ? horario.horaSalida|date('H:i') : asignacion.division.horaSalidaSugerida }}"
+                                               {{ horario and startEditing ? '' : 'disabled' }}
+                                               data-day-time
+                                               data-edit-control
+                                               data-day-on="{{ horario ? '1' : '0' }}">
+                                    </div>
+                                </div>
+                                <p class="day-slot__off-label">Sin clase</p>
+                            </article>
                         {% endfor %}
-                    </select>
-                </div>
-                <div>
-                    <label for="nuevo_division">División</label>
-                    <select id="nuevo_division" name="nuevo_division">
-                        <option value="">Sin agregar</option>
-                        {% for division in divisiones %}
-                            <option value="{{ division.id }}">{{ division.nombre }} · {{ division.turnoLabel }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-            </div>
-            {% for numero, nombre in dias %}
-                <div class="horario-row">
-                    <label class="checkline">
-                        <input type="checkbox" name="nuevo_dias[]" value="{{ numero }}" checked>
-                        {{ nombre }}
-                    </label>
-                    <div>
-                        <label>Entrada</label>
-                        <input type="time" data-nuevo-entrada name="nuevo_entrada[{{ numero }}]" value="08:00">
                     </div>
-                    <div>
-                        <label>Salida</label>
-                        <input type="time" data-nuevo-salida name="nuevo_salida[{{ numero }}]" value="12:30">
-                    </div>
+                </section>
+            {% else %}
+                <div class="card empty-state" style="margin-bottom:1rem;">
+                    <div class="empty-state__icon" aria-hidden="true">📚</div>
+                    <strong>Sin cursos asignados</strong>
+                    <span class="schedule-editor__hint-view">Presioná <em>Editar</em> y después <em>Agregar curso</em> para asignar el primero.</span>
+                    <span class="schedule-editor__hint-edit">Presioná <em>Agregar curso</em> para asignar el primero con su horario semanal.</span>
                 </div>
             {% endfor %}
-        </section>
 
-        <input type="hidden" name="_token" value="{{ csrf_token('horario_' ~ profesor.id) }}">
-        <button class="btn btn-accent" type="submit">Guardar cambios</button>
-    </form>
+            <div class="modal" id="modal-agregar-curso" hidden aria-hidden="true">
+                <div class="modal__backdrop" data-close-modal tabindex="-1"></div>
+                <div class="modal__dialog modal__dialog--schedule" role="dialog" aria-modal="true" aria-labelledby="modal-agregar-curso-title">
+                    <header class="modal__header">
+                        <div>
+                            <h2 id="modal-agregar-curso-title">Agregar curso</h2>
+                            <p class="meta">Elegí año, división y los días con horario.</p>
+                        </div>
+                        <button type="button" class="modal__close" data-close-modal aria-label="Cerrar">×</button>
+                    </header>
+                    <div class="modal__body">
+                        <div class="horario-row modal__selects">
+                            <div>
+                                <label for="nuevo_curso">Curso</label>
+                                <select id="nuevo_curso" name="nuevo_curso">
+                                    <option value="">Elegir curso…</option>
+                                    {% for curso in cursos %}
+                                        <option value="{{ curso.id }}">{{ curso.nombre }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div>
+                                <label for="nuevo_division">División</label>
+                                <select id="nuevo_division" name="nuevo_division">
+                                    <option value="">Elegir división…</option>
+                                    {% for division in divisiones %}
+                                        <option value="{{ division.id }}">{{ division.nombre }} · {{ division.turnoLabel }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="schedule-grid schedule-grid--modal">
+                            {% for numero, nombre in dias %}
+                                <article class="day-slot is-active">
+                                    <label class="day-slot__toggle">
+                                        <input type="checkbox" name="nuevo_dias[]" value="{{ numero }}" checked data-day-toggle>
+                                        <span class="day-slot__check" aria-hidden="true"></span>
+                                        <span class="day-slot__name">
+                                            <span class="day-slot__abbr">{{ nombre|slice(0, 3) }}</span>
+                                            <span class="day-slot__full">{{ nombre }}</span>
+                                        </span>
+                                    </label>
+                                    <div class="day-slot__times">
+                                        <div class="day-slot__field">
+                                            <label>Entrada</label>
+                                            <input type="time" data-nuevo-entrada name="nuevo_entrada[{{ numero }}]" value="08:00" data-day-time>
+                                        </div>
+                                        <div class="day-slot__field">
+                                            <label>Salida</label>
+                                            <input type="time" data-nuevo-salida name="nuevo_salida[{{ numero }}]" value="12:30" data-day-time>
+                                        </div>
+                                    </div>
+                                    <p class="day-slot__off-label">Sin clase</p>
+                                </article>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <footer class="modal__footer">
+                        <button type="button" class="btn btn-ghost" data-close-modal><i class="bi bi-x-lg" aria-hidden="true"></i> Cancelar</button>
+                        <button class="btn btn-accent" type="submit" id="btn-confirmar-curso"><i class="bi bi-check-lg" aria-hidden="true"></i> Agregar y guardar</button>
+                    </footer>
+                </div>
+            </div>
+
+            <input type="hidden" name="_token" value="{{ csrf_token('horario_' ~ profesor.id) }}">
+            <div class="form-sticky-actions schedule-editor__save">
+                {% if bloques %}
+                    <span class="meta">Los días desmarcados quedan sin clase.</span>
+                {% endif %}
+                <button type="button" class="btn btn-ghost" id="btn-cancelar-edicion">
+                    <i class="bi bi-x-lg" aria-hidden="true"></i> Cancelar
+                </button>
+                {% if bloques %}
+                    <button class="btn btn-accent" type="submit"><i class="bi bi-check2-circle" aria-hidden="true"></i> Guardar cambios</button>
+                {% endif %}
+            </div>
+        </form>
+    </div>
     <script>
         (function () {
             var turnos = {{ turnos|json_encode|raw }};
+            var editor = document.getElementById('schedule-editor');
+            var form = document.getElementById('form-horarios');
+            var modal = document.getElementById('modal-agregar-curso');
+            var btnEdit = document.getElementById('btn-editar-horarios');
+            var btnCancel = document.getElementById('btn-cancelar-edicion');
+            var abrir = document.getElementById('btn-abrir-curso');
             var division = document.getElementById('nuevo_division');
+            var curso = document.getElementById('nuevo_curso');
+            var lastFocus = null;
+
+            function isEditing() {
+                return editor.classList.contains('is-editing');
+            }
+
+            function syncDaySlot(toggle) {
+                var slot = toggle.closest('.day-slot');
+                if (!slot) return;
+                var on = toggle.checked;
+                slot.classList.toggle('is-active', on);
+                slot.classList.toggle('is-off', !on);
+                slot.querySelectorAll('[data-day-time]').forEach(function (input) {
+                    if (modal.contains(input)) {
+                        input.disabled = !on;
+                        return;
+                    }
+                    input.disabled = !isEditing() || !on;
+                });
+            }
+
+            function setEditing(on) {
+                editor.classList.toggle('is-editing', on);
+                editor.classList.toggle('is-view', !on);
+                editor.dataset.editing = on ? '1' : '0';
+                btnEdit.hidden = on;
+                abrir.hidden = !on;
+
+                form.querySelectorAll('[data-edit-control]').forEach(function (el) {
+                    if (el.hasAttribute('data-day-time')) {
+                        var dayOn = el.getAttribute('data-day-on') === '1';
+                        var toggle = el.closest('.day-slot');
+                        var checked = toggle ? toggle.querySelector('[data-day-toggle]') : null;
+                        var active = checked ? checked.checked : dayOn;
+                        el.disabled = !on || !active;
+                        return;
+                    }
+                    el.disabled = !on;
+                });
+
+                form.querySelectorAll('.schedule-grid:not(.schedule-grid--modal) [data-day-toggle]').forEach(function (toggle) {
+                    syncDaySlot(toggle);
+                });
+            }
+
+            document.querySelectorAll('[data-day-toggle]').forEach(function (toggle) {
+                syncDaySlot(toggle);
+                toggle.addEventListener('change', function () { syncDaySlot(toggle); });
+            });
+
+            btnEdit.addEventListener('click', function () {
+                setEditing(true);
+                btnCancel.focus();
+            });
+            btnCancel.addEventListener('click', function () {
+                window.location.reload();
+            });
+
+            function openModal() {
+                if (!isEditing()) return;
+                lastFocus = document.activeElement;
+                modal.hidden = false;
+                modal.setAttribute('aria-hidden', 'false');
+                document.body.classList.add('modal-open');
+                window.setTimeout(function () { curso.focus(); }, 10);
+            }
+
+            function resetNuevo() {
+                curso.value = '';
+                division.value = '';
+                modal.querySelectorAll('input[name="nuevo_dias[]"]').forEach(function (input) {
+                    input.checked = true;
+                    syncDaySlot(input);
+                });
+                document.querySelectorAll('[data-nuevo-entrada]').forEach(function (input) {
+                    input.value = '08:00';
+                });
+                document.querySelectorAll('[data-nuevo-salida]').forEach(function (input) {
+                    input.value = '12:30';
+                });
+            }
+
+            function closeModal(doReset) {
+                modal.hidden = true;
+                modal.setAttribute('aria-hidden', 'true');
+                document.body.classList.remove('modal-open');
+                if (doReset) resetNuevo();
+                if (lastFocus && typeof lastFocus.focus === 'function') lastFocus.focus();
+            }
+
+            abrir.addEventListener('click', openModal);
+            modal.querySelectorAll('[data-close-modal]').forEach(function (el) {
+                el.addEventListener('click', function () { closeModal(true); });
+            });
+            document.addEventListener('keydown', function (event) {
+                if (event.key === 'Escape' && !modal.hidden) closeModal(true);
+            });
+
             division.addEventListener('change', function () {
                 var tarde = turnos[this.value] === 'tarde';
                 document.querySelectorAll('[data-nuevo-entrada]').forEach(function (input) {
@@ -109,6 +313,12 @@
                     input.value = tarde ? '17:30' : '12:30';
                 });
             });
+
+            setEditing({{ startEditing ? 'true' : 'false' }});
+
+            {% if error and ('curso' in error|lower or 'división' in error|lower or 'division' in error|lower or 'agregar' in error|lower) %}
+            openModal();
+            {% endif %}
         })();
     </script>
 {% endblock %}

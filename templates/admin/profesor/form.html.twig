@@ -9,30 +9,80 @@
             <h1>{{ titulo }}</h1>
             <p class="meta">Los datos se usan para el login de ingreso y el panel diario.</p>
         </div>
-        <a class="btn btn-ghost" href="{{ path('admin_profesor_index') }}">Volver al listado</a>
+        {% if profesor %}
+            <a class="btn btn-ghost" href="{{ path('admin_profesor_show', {id: profesor.id}) }}"><i class="bi bi-arrow-left" aria-hidden="true"></i> Volver a la ficha</a>
+        {% else %}
+            <a class="btn btn-ghost" href="{{ path('admin_profesor_index') }}"><i class="bi bi-arrow-left" aria-hidden="true"></i> Volver al listado</a>
+        {% endif %}
     </div>
 
     {% if error %}
         <div class="alert alert-error" role="alert">{{ error }}</div>
     {% endif %}
 
-    <form method="post" class="card" style="max-width:560px;">
-        <label for="dni">DNI</label>
-        <input id="dni" name="dni" inputmode="numeric" value="{{ data.dni }}" required>
+    <form method="post" enctype="multipart/form-data" class="card form-card">
+        <div class="foto-field">
+            <div class="foto-field__preview" id="foto-preview">
+                {% if profesor and profesor.foto %}
+                    <img src="{{ asset(profesor.foto) }}" alt="Foto actual de {{ profesor.nombreCompleto }}" id="foto-preview-img">
+                {% else %}
+                    <span class="avatar avatar--lg avatar--fallback" id="foto-preview-fallback" aria-hidden="true">
+                        {{ profesor ? profesor.iniciales : '📷' }}
+                    </span>
+                {% endif %}
+            </div>
+            <div class="foto-field__controls">
+                <label for="foto">Foto del profesor</label>
+                <p class="meta">JPG, PNG o WEBP · máx. 2 MB. Opcional.</p>
+                <input id="foto" name="foto" type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp">
+                {% if profesor and profesor.foto %}
+                    <label class="checkline" style="margin-top:0.65rem;">
+                        <input type="checkbox" name="quitar_foto" value="1"> Quitar foto actual
+                    </label>
+                {% endif %}
+            </div>
+        </div>
 
-        <label for="nombre">Nombre</label>
-        <input id="nombre" name="nombre" value="{{ data.nombre }}" required>
-
-        <label for="apellido">Apellido</label>
-        <input id="apellido" name="apellido" value="{{ data.apellido }}" required>
-
-        <label for="password">{{ profesor ? 'Nueva contraseña (vacío para no cambiarla)' : 'Contraseña inicial' }}</label>
-        <input id="password" name="password" type="password" autocomplete="new-password" {{ profesor ? '' : 'required' }}>
+        <div class="form-grid">
+            <div>
+                <label for="dni">DNI</label>
+                <input id="dni" name="dni" inputmode="numeric" value="{{ data.dni }}" required>
+            </div>
+            <div>
+                <label for="password">{{ profesor ? 'Nueva contraseña (vacío = no cambiar)' : 'Contraseña inicial' }}</label>
+                <input id="password" name="password" type="password" autocomplete="new-password" {{ profesor ? '' : 'required' }}>
+            </div>
+            <div>
+                <label for="nombre">Nombre</label>
+                <input id="nombre" name="nombre" value="{{ data.nombre }}" required>
+            </div>
+            <div>
+                <label for="apellido">Apellido</label>
+                <input id="apellido" name="apellido" value="{{ data.apellido }}" required>
+            </div>
+        </div>
 
         <input type="hidden" name="_token" value="{{ csrf_token('profesor_form') }}">
         <div class="row-actions" style="margin-top:1.25rem;">
-            <button class="btn" type="submit">Guardar</button>
-            <a class="btn btn-ghost" href="{{ path('admin_profesor_index') }}">Cancelar</a>
+            <button class="btn" type="submit"><i class="bi bi-check2-circle" aria-hidden="true"></i> Guardar</button>
+            {% if profesor %}
+                <a class="btn btn-ghost" href="{{ path('admin_profesor_show', {id: profesor.id}) }}"><i class="bi bi-x-lg" aria-hidden="true"></i> Cancelar</a>
+            {% else %}
+                <a class="btn btn-ghost" href="{{ path('admin_profesor_index') }}"><i class="bi bi-x-lg" aria-hidden="true"></i> Cancelar</a>
+            {% endif %}
         </div>
     </form>
+    <script>
+        (function () {
+            var input = document.getElementById('foto');
+            var preview = document.getElementById('foto-preview');
+            if (!input || !preview) return;
+            input.addEventListener('change', function () {
+                var file = input.files && input.files[0];
+                if (!file) return;
+                var url = URL.createObjectURL(file);
+                preview.innerHTML = '<img src="' + url + '" alt="Vista previa" id="foto-preview-img">';
+            });
+        })();
+    </script>
 {% endblock %}

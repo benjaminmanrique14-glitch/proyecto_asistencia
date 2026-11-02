@@ -1,0 +1,48 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}Mi perfil{% endblock %}
+{% block topbar_title %}Mi perfil{% endblock %}
+
+{% block body %}
+    <div class="page-header">
+        <div>
+            <h1>Mi cuenta</h1>
+            <p class="meta">Actualizá tu usuario o contraseña de administración.</p>
+        </div>
+        <a class="btn btn-ghost" href="{{ path('admin_dashboard') }}">Volver al calendario</a>
+    </div>
+
+    {% if error %}
+        <div class="alert alert-error" role="alert">{{ error }}</div>
+    {% endif %}
+
+    <form method="post" class="card form-card">
+        <label for="username">Usuario</label>
+        <input id="username" name="username" value="{{ data.username }}" autocomplete="username" required>
+
+        <hr class="form-divider">
+
+        <h2 class="form-section-title">Cambiar contraseña</h2>
+        <p class="meta" style="margin-top:0;">Dejá vacíos los campos de contraseña nueva si solo querés cambiar el usuario.</p>
+
+        <label for="password_actual">Contraseña actual</label>
+        <input id="password_actual" name="password_actual" type="password" autocomplete="current-password">
+
+        <div class="form-grid">
+            <div>
+                <label for="password_nueva">Nueva contraseña</label>
+                <input id="password_nueva" name="password_nueva" type="password" autocomplete="new-password">
+            </div>
+            <div>
+                <label for="password_repetir">Confirmar nueva contraseña</label>
+                <input id="password_repetir" name="password_repetir" type="password" autocomplete="new-password">
+            </div>
+        </div>
+
+        <input type="hidden" name="_token" value="{{ csrf_token('admin_perfil') }}">
+        <div class="row-actions" style="margin-top:1.25rem;">
+            <button class="btn btn-accent" type="submit">Guardar cambios</button>
+            <a class="btn btn-ghost" href="{{ path('admin_dashboard') }}">Cancelar</a>
+        </div>
+    </form>
+{% endblock %}

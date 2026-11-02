@@ -1,0 +1,254 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}{{ profesor.nombreCompleto }}{% endblock %}
+{% block topbar_title %}Ficha del profesor{% endblock %}
+
+{% block body %}
+    <div class="page-header">
+        <div class="teacher-hero">
+            {% include 'partials/avatar.html.twig' with { persona: profesor, size: 'lg' } only %}
+            <div>
+                <h1>{{ profesor.nombreCompleto }}</h1>
+                <p class="meta">
+                    DNI {{ profesor.dni }}
+                    · Alta {{ profesor.createdAt|date('d/m/Y') }}
+                    ·
+                    {% if profesor.isActive %}
+                        <span class="badge badge-on">Activo</span>
+                    {% else %}
+                        <span class="badge badge-off">De baja</span>
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+        <div class="page-header__actions">
+            <a class="btn btn-accent" href="{{ path('admin_profesor_edit', {id: profesor.id}) }}"><i class="bi bi-pencil-square" aria-hidden="true"></i> Editar</a>
+            <a class="btn" href="{{ path('admin_horario_edit', {id: profesor.id}) }}"><i class="bi bi-calendar-week" aria-hidden="true"></i> Cursos</a>
+            <form method="post" action="{{ path('admin_profesor_estado', {id: profesor.id}) }}" class="inline-form">
+                <input type="hidden" name="_token" value="{{ csrf_token('profesor_estado_' ~ profesor.id) }}">
+                <input type="hidden" name="_redirect" value="show">
+                <button class="btn {{ profesor.isActive ? 'btn-danger-soft' : 'btn-ok-soft' }}" type="submit">
+                    {% if profesor.isActive %}
+                        <i class="bi bi-person-x" aria-hidden="true"></i> Dar de baja
+                    {% else %}
+                        <i class="bi bi-person-check" aria-hidden="true"></i> Reactivar
+                    {% endif %}
+                </button>
+            </form>
+            <a class="btn btn-ghost" href="{{ path('admin_profesor_index') }}"><i class="bi bi-arrow-left" aria-hidden="true"></i> Volver</a>
+        </div>
+    </div>
+
+    <div class="stat-grid teacher-show__stats" aria-label="Resumen del profesor">
+        <article class="stat-card">
+            <div class="stat-card__label">Cursos</div>
+            <div class="stat-card__value">{{ profesor.asignaciones|length }}</div>
+        </article>
+        <article class="stat-card stat-card--present">
+            <div class="stat-card__label">Asistencias</div>
+            <div class="stat-card__value">{{ asistencias|length }}</div>
+        </article>
+        <article class="stat-card stat-card--justified">
+            <div class="stat-card__label">Justificaciones</div>
+            <div class="stat-card__value">{{ justificaciones|length }}</div>
+        </article>
+    </div>
+
+    <div class="teacher-show__grid">
+        <section class="panel">
+            <div class="panel__head">
+                <h2>Datos personales</h2>
+            </div>
+            <div class="panel__body">
+                <dl class="detail-list">
+                    <div>
+                        <dt>Apellido</dt>
+                        <dd>{{ profesor.apellido }}</dd>
+                    </div>
+                    <div>
+                        <dt>Nombre</dt>
+                        <dd>{{ profesor.nombre }}</dd>
+                    </div>
+                    <div>
+                        <dt>DNI</dt>
+                        <dd><code>{{ profesor.dni }}</code></dd>
+                    </div>
+                    <div>
+                        <dt>Estado</dt>
+                        <dd>
+                            {% if profesor.isActive %}
+                                <span class="badge badge-on">Activo</span>
+                            {% else %}
+                                <span class="badge badge-off">De baja</span>
+                            {% endif %}
+                        </dd>
+                    </div>
+                    <div>
+                        <dt>Fecha de alta</dt>
+                        <dd>{{ profesor.createdAt|date('d/m/Y H:i') }}</dd>
+                    </div>
+                    <div>
+                        <dt>Foto</dt>
+                        <dd>{{ profesor.foto ? 'Cargada' : 'Sin foto' }}</dd>
+                    </div>
+                </dl>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="panel__head">
+                <h2>Cursos asignados</h2>
+                <a class="btn btn-ghost btn-sm" href="{{ path('admin_horario_edit', {id: profesor.id}) }}"><i class="bi bi-calendar-week" aria-hidden="true"></i> Gestionar</a>
+            </div>
+            <div class="panel__body">
+                {% if profesor.asignaciones|length %}
+                    <ul class="chip-list">
+                        {% for asignacion in profesor.asignaciones %}
+                            <li>
+                                <span class="badge badge-course">{{ asignacion.etiqueta }}</span>
+                                <span class="meta">{{ asignacion.division.turnoLabel }}</span>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <div class="empty-inline">
+                        <strong>Sin cursos</strong>
+                        <span class="meta">Todavía no tiene asignaciones.</span>
+                    </div>
+                {% endif %}
+            </div>
+        </section>
+    </div>
+
+    <section class="panel" style="margin-top:1rem;">
+        <div class="panel__head">
+            <h2>Horarios</h2>
+            <span class="meta">{{ horarios|length }} bloque{{ horarios|length == 1 ? '' : 's' }}</span>
+        </div>
+        <div class="panel__body">
+            {% if horarios|length %}
+                <div class="table-wrap">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Día</th>
+                                <th>Curso</th>
+                                <th>Entrada</th>
+                                <th>Salida</th>
+                                <th>Turno</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for horario in horarios %}
+                                <tr>
+                                    <td><strong>{{ horario.nombreDia }}</strong></td>
+                                    <td>{{ horario.profesorCurso.etiqueta }}</td>
+                                    <td>{{ horario.horaEntrada|date('H:i') }}</td>
+                                    <td>{{ horario.horaSalida|date('H:i') }}</td>
+                                    <td><span class="badge badge-course">{{ horario.profesorCurso.division.turnoLabel }}</span></td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="empty-inline">
+                    <strong>Sin horarios cargados</strong>
+                    <span class="meta">Asigná cursos y días desde la gestión de horarios.</span>
+                </div>
+            {% endif %}
+        </div>
+    </section>
+
+    <section class="panel panel--present" style="margin-top:1rem;">
+        <div class="panel__head">
+            <h2>Historial de asistencias</h2>
+            <span class="meta">{{ asistencias|length }} registro{{ asistencias|length == 1 ? '' : 's' }}</span>
+        </div>
+        <div class="panel__body">
+            {% if asistencias|length %}
+                <div class="table-wrap">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Ingreso</th>
+                                <th>Salida</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for asistencia in asistencias %}
+                                <tr>
+                                    <td><strong>{{ asistencia.fecha|date('d/m/Y') }}</strong></td>
+                                    <td>
+                                        <span class="status-chip status-chip--present">
+                                            {{ asistencia.horaIngreso|date('H:i') }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if asistencia.horaSalida %}
+                                            <span class="status-chip status-chip--present">
+                                                {{ asistencia.horaSalida|date('H:i') }}
+                                            </span>
+                                        {% else %}
+                                            <span class="meta">Sin salida</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="empty-inline">
+                    <strong>Sin asistencias</strong>
+                    <span class="meta">Todavía no hay ingresos registrados para este docente.</span>
+                </div>
+            {% endif %}
+        </div>
+    </section>
+
+    <section class="panel panel--justified" style="margin-top:1rem;">
+        <div class="panel__head">
+            <h2>Justificaciones</h2>
+            <span class="meta">{{ justificaciones|length }} registro{{ justificaciones|length == 1 ? '' : 's' }}</span>
+        </div>
+        <div class="panel__body">
+            {% if justificaciones|length %}
+                <div class="table-wrap">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Fecha afectada</th>
+                                <th>Tipo</th>
+                                <th>Motivo</th>
+                                <th>Archivo</th>
+                                <th>Cargada</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for justificacion in justificaciones %}
+                                <tr>
+                                    <td><strong>{{ justificacion.fechaAfectada|date('d/m/Y') }}</strong></td>
+                                    <td><span class="badge badge-justified">{{ justificacion.tipoLabel }}</span></td>
+                                    <td class="teacher-show__motivo">{{ justificacion.motivo }}</td>
+                                    <td>
+                                        <a class="btn btn-ghost btn-sm" href="{{ asset(justificacion.archivoUrl) }}" target="_blank" rel="noopener">
+                                            <i class="bi bi-file-earmark-arrow-down" aria-hidden="true"></i> Ver archivo
+                                        </a>
+                                    </td>
+                                    <td class="meta">{{ justificacion.createdAt|date('d/m/Y H:i') }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="empty-inline">
+                    <strong>Sin justificaciones</strong>
+                    <span class="meta">No hay justificaciones cargadas para este profesor.</span>
+                </div>
+            {% endif %}
+        </div>
+    </section>
+{% endblock %}

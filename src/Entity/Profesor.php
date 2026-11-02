@@ -45,6 +45,11 @@ class Profesor implements UserInterface, PasswordAuthenticatedUserInterface
     private $password;
 
     /**
+     * @ORM\Column(type="string", length=255, nullable=true)
+     */
+    private $foto;
+
+    /**
      * @ORM\Column(name="is_active", type="boolean", nullable=true, options={"default": true})
      */
     private $isActive = true;
@@ -169,6 +174,26 @@ class Profesor implements UserInterface, PasswordAuthenticatedUserInterface
         $this->password = $password;
 
         return $this;
+    }
+
+    public function getFoto(): ?string
+    {
+        return $this->foto;
+    }
+
+    public function setFoto(?string $foto): self
+    {
+        $this->foto = $foto;
+
+        return $this;
+    }
+
+    public function getIniciales(): string
+    {
+        $nombre = mb_substr(trim((string) $this->nombre), 0, 1);
+        $apellido = mb_substr(trim((string) $this->apellido), 0, 1);
+
+        return mb_strtoupper($apellido.$nombre);
     }
 
     public function getIsActive(): ?bool

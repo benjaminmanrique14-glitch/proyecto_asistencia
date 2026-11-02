@@ -45,4 +45,18 @@ class AsistenciaRepository extends ServiceEntityRepository
             'fecha' => $fecha,
         ]);
     }
+
+    /**
+     * @return Asistencia[]
+     */
+    public function findByProfesorOrdered(Profesor $profesor): array
+    {
+        return $this->createQueryBuilder('a')
+            ->andWhere('a.profesor = :profesor')
+            ->setParameter('profesor', $profesor)
+            ->orderBy('a.fecha', 'DESC')
+            ->addOrderBy('a.horaIngreso', 'DESC')
+            ->getQuery()
+            ->getResult();
+    }
 }

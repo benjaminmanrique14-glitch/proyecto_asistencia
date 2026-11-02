@@ -1,0 +1,18 @@
+{#
+  Avatar de profesor.
+  Variables: persona (Profesor), size ('sm'|'md'|'list'|'lg'), extra_class (opcional)
+#}
+{% set size = size|default('md') %}
+{% set extra_class = extra_class|default('') %}
+{% set px = size == 'lg' ? 96 : (size == 'list' ? 52 : (size == 'sm' ? 32 : 44)) %}
+{% if persona.foto %}
+    <img class="avatar avatar--{{ size }} {{ extra_class }}"
+         src="{{ asset(persona.foto) }}"
+         alt="{{ persona.nombreCompleto }}"
+         width="{{ px }}"
+         height="{{ px }}">
+{% else %}
+    <span class="avatar avatar--{{ size }} avatar--fallback {{ extra_class }}"
+          aria-hidden="true"
+          title="{{ persona.nombreCompleto }}">{{ persona.iniciales }}</span>
+{% endif %}

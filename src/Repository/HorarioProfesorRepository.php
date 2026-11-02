@@ -3,6 +3,7 @@
 namespace App\Repository;
 
 use App\Entity\HorarioProfesor;
+use App\Entity\Profesor;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -40,6 +41,28 @@ class HorarioProfesorRepository extends ServiceEntityRepository
             ->setParameter('dia', $diaSemana)
             ->setParameter('active', true)
             ->orderBy('c.numero', 'ASC')
+            ->addOrderBy('d.numero', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * @return HorarioProfesor[]
+     */
+    public function findByProfesorOrdered(Profesor $profesor): array
+    {
+        return $this->createQueryBuilder('h')
+            ->innerJoin('h.profesorCurso', 'pc')
+            ->addSelect('pc')
+            ->innerJoin('pc.curso', 'c')
+            ->addSelect('c')
+            ->innerJoin('pc.division', 'd')
+            ->addSelect('d')
+            ->andWhere('h.profesor = :profesor')
+            ->setParameter('profesor', $profesor)
+            ->orderBy('h.diaSemana', 'ASC')
+            ->addOrderBy('h.horaEntrada', 'ASC')
+            ->addOrderBy('c.numero', 'ASC')
             ->addOrderBy('d.numero', 'ASC')
             ->getQuery()
             ->getResult();

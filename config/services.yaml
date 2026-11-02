@@ -5,6 +5,7 @@
 # https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
 parameters:
     justificaciones_directory: '%kernel.project_dir%/public/uploads/justificaciones'
+    profesores_fotos_directory: '%kernel.project_dir%/public/uploads/profesores'
 
 services:
     # default configuration for services in *this* file
@@ -13,6 +14,7 @@ services:
         autoconfigure: true
         bind:
             $justificacionesDirectory: '%justificaciones_directory%'
+            $profesoresFotosDirectory: '%profesores_fotos_directory%'
             $appPublicUrl: '%env(APP_PUBLIC_URL)%'
 
     # makes classes in src/ available to be used as services

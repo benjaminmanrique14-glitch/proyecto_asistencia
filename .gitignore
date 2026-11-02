@@ -13,6 +13,12 @@
 /.vscode/
 /public/uploads/*
 !/public/uploads/.gitkeep
+!/public/uploads/profesores/
+/public/uploads/profesores/*
+!/public/uploads/profesores/.gitkeep
+!/public/uploads/justificaciones/
+/public/uploads/justificaciones/*
+!/public/uploads/justificaciones/.gitkeep
 *.log
 .DS_Store
 Thumbs.db

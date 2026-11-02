@@ -3,6 +3,7 @@
 namespace App\Repository;
 
 use App\Entity\Justificacion;
+use App\Entity\Profesor;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -31,6 +32,20 @@ class JustificacionRepository extends ServiceEntityRepository
             ->addSelect('p')
             ->andWhere('j.fechaAfectada = :fecha')
             ->setParameter('fecha', $fecha)
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * @return Justificacion[]
+     */
+    public function findByProfesorOrdered(Profesor $profesor): array
+    {
+        return $this->createQueryBuilder('j')
+            ->andWhere('j.profesor = :profesor')
+            ->setParameter('profesor', $profesor)
+            ->orderBy('j.fechaAfectada', 'DESC')
+            ->addOrderBy('j.createdAt', 'DESC')
             ->getQuery()
             ->getResult();
     }

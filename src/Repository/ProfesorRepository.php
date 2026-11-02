@@ -51,4 +51,21 @@ class ProfesorRepository extends ServiceEntityRepository
             ->getQuery()
             ->getOneOrNullResult();
     }
+
+    public function findOneWithAsignaciones(int $id): ?Profesor
+    {
+        return $this->createQueryBuilder('p')
+            ->leftJoin('p.asignaciones', 'a')
+            ->addSelect('a')
+            ->leftJoin('a.curso', 'c')
+            ->addSelect('c')
+            ->leftJoin('a.division', 'd')
+            ->addSelect('d')
+            ->andWhere('p.id = :id')
+            ->setParameter('id', $id)
+            ->orderBy('c.numero', 'ASC')
+            ->addOrderBy('d.numero', 'ASC')
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
 }

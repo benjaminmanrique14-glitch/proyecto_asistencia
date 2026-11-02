@@ -5,17 +5,19 @@
 
 {% block body %}
     {% set meses = {1:'Enero',2:'Febrero',3:'Marzo',4:'Abril',5:'Mayo',6:'Junio',7:'Julio',8:'Agosto',9:'Septiembre',10:'Octubre',11:'Noviembre',12:'Diciembre'} %}
-    {% set anterior = mes|date_modify('-1 month') %}
-    {% set siguiente = mes|date_modify('+1 month') %}
 
     <div class="page-header">
         <div>
             <h1>{{ meses[mes|date('n')] }} {{ mes|date('Y') }}</h1>
-            <p class="meta">Seleccioná un día para ver presentes, ausentes y justificados.</p>
+            <p class="meta">Podés consultar cualquier día anterior. La ausencia se confirma cuando termina el horario y no hubo ingreso ni justificación.</p>
         </div>
         <div class="page-header__actions">
-            <a class="btn btn-ghost" href="{{ path('admin_dashboard', {mes: anterior|date('Y-m'), fecha: fecha|date('Y-m-d')}) }}">← Mes anterior</a>
-            <a class="btn btn-ghost" href="{{ path('admin_dashboard', {mes: siguiente|date('Y-m'), fecha: fecha|date('Y-m-d')}) }}">Mes siguiente →</a>
+            <a class="btn btn-ghost" href="{{ path('admin_dashboard', {mes: mesAnterior|date('Y-m')}) }}">← Mes anterior</a>
+            {% if puedeMesSiguiente %}
+                <a class="btn btn-ghost" href="{{ path('admin_dashboard', {mes: mesSiguiente|date('Y-m')}) }}">Mes siguiente →</a>
+            {% else %}
+                <span class="btn btn-ghost" aria-disabled="true" style="opacity:0.45;pointer-events:none;">Mes siguiente →</span>
+            {% endif %}
         </div>
     </div>
 
@@ -47,10 +49,10 @@
                 {% for dia in dias %}
                     {% set iso = dia.fecha|date('Y-m-d') %}
                     {% set futuro = dia.fecha > hoy %}
-                    {% if futuro or not dia.enMes %}
+                    {% if futuro %}
                         <span class="{{ dia.enMes ? '' : 'out' }}">{{ dia.fecha|date('j') }}</span>
                     {% else %}
-                        <a class="{{ iso == fecha|date('Y-m-d') ? 'selected' : '' }} {{ iso == hoy|date('Y-m-d') ? 'today' : '' }}"
+                        <a class="{{ iso == fecha|date('Y-m-d') ? 'selected' : '' }} {{ iso == hoy|date('Y-m-d') ? 'today' : '' }} {{ not dia.enMes ? 'out' : '' }}"
                            href="{{ path('admin_dashboard', {fecha: iso, mes: dia.fecha|date('Y-m')}) }}"
                            aria-label="Ver {{ dia.fecha|date('d/m/Y') }}"
                            {% if iso == fecha|date('Y-m-d') %}aria-current="date"{% endif %}>
@@ -68,7 +70,7 @@
             {% if esFinDeSemana %}
                 <p class="meta">Fin de semana: no hay jornada escolar cargada en los horarios de lunes a viernes.</p>
             {% else %}
-                <p class="meta">Filtrá por nombre o curso para encontrar rápido a un docente.</p>
+                <p class="meta">Filtrá por nombre o curso. Las ausencias aparecen recién cuando termina el horario del docente.</p>
             {% endif %}
         </div>
     </div>
@@ -91,12 +93,17 @@
                     <ul class="attendance-list">
                         {% for asistencia in presentes %}
                             <li data-search="{{ asistencia.profesor.nombreCompleto|lower }}">
-                                <div class="attendance-list__name">{{ asistencia.profesor.nombreCompleto }}</div>
-                                <div class="meta">
-                                    <span class="status-chip status-chip--present">Ingreso {{ asistencia.horaIngreso|date('H:i') }}</span>
-                                    {% if asistencia.horaSalida %}
-                                        <span class="status-chip status-chip--exit">Salida {{ asistencia.horaSalida|date('H:i') }}</span>
-                                    {% endif %}
+                                <div class="attendance-list__row">
+                                    {% include 'partials/avatar.html.twig' with { persona: asistencia.profesor, size: 'sm' } only %}
+                                    <div>
+                                        <div class="attendance-list__name">{{ asistencia.profesor.nombreCompleto }}</div>
+                                        <div class="meta">
+                                            <span class="status-chip status-chip--present">Ingreso {{ asistencia.horaIngreso|date('H:i') }}</span>
+                                            {% if asistencia.horaSalida %}
+                                                <span class="status-chip status-chip--exit">Salida {{ asistencia.horaSalida|date('H:i') }}</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
                                 </div>
                             </li>
                         {% endfor %}
@@ -121,8 +128,13 @@
                     <ul class="attendance-list">
                         {% for profesor in ausentes %}
                             <li data-search="{{ (profesor.nombreCompleto ~ ' ' ~ (cursosDelDia[profesor.id]|default([])|join(' ')))|lower }}">
-                                <div class="attendance-list__name">{{ profesor.nombreCompleto }}</div>
-                                <div class="meta">{{ cursosDelDia[profesor.id]|default([])|join(' · ') }}</div>
+                                <div class="attendance-list__row">
+                                    {% include 'partials/avatar.html.twig' with { persona: profesor, size: 'sm' } only %}
+                                    <div>
+                                        <div class="attendance-list__name">{{ profesor.nombreCompleto }}</div>
+                                        <div class="meta">{{ cursosDelDia[profesor.id]|default([])|join(' · ') }}</div>
+                                    </div>
+                                </div>
                             </li>
                         {% endfor %}
                     </ul>
@@ -130,7 +142,11 @@
                     <div class="empty-state">
                         <div class="empty-state__icon" aria-hidden="true">◎</div>
                         <strong>Sin ausencias</strong>
-                        <span>No hay ausencias sin justificar.</span>
+                        {% if pendientes|length %}
+                            <span>Hay {{ pendientes|length }} docente{{ pendientes|length == 1 ? '' : 's' }} con horario en curso o pendiente; la ausencia se confirma al terminar la jornada.</span>
+                        {% else %}
+                            <span>No hay ausencias sin justificar.</span>
+                        {% endif %}
                     </div>
                 {% endif %}
             </div>
@@ -146,9 +162,14 @@
                     <ul class="attendance-list">
                         {% for justificacion in justificados %}
                             <li data-search="{{ (justificacion.profesor.nombreCompleto ~ ' ' ~ justificacion.tipoLabel)|lower }}">
-                                <div class="attendance-list__name">{{ justificacion.profesor.nombreCompleto }}</div>
-                                <div class="meta">{{ justificacion.tipoLabel }}</div>
-                                <a class="btn btn-ghost btn-sm" style="margin-top:0.5rem;" href="{{ asset(justificacion.archivoUrl) }}" target="_blank" rel="noopener">Ver archivo</a>
+                                <div class="attendance-list__row">
+                                    {% include 'partials/avatar.html.twig' with { persona: justificacion.profesor, size: 'sm' } only %}
+                                    <div>
+                                        <div class="attendance-list__name">{{ justificacion.profesor.nombreCompleto }}</div>
+                                        <div class="meta">{{ justificacion.tipoLabel }}</div>
+                                        <a class="btn btn-ghost btn-sm" style="margin-top:0.5rem;" href="{{ asset(justificacion.archivoUrl) }}" target="_blank" rel="noopener">Ver archivo</a>
+                                    </div>
+                                </div>
                             </li>
                         {% endfor %}
                     </ul>

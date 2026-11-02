@@ -3,11 +3,17 @@
 namespace App\Controller\Admin;
 
 use App\Entity\Profesor;
+use App\Repository\AsistenciaRepository;
+use App\Repository\HorarioProfesorRepository;
+use App\Repository\JustificacionRepository;
 use App\Repository\ProfesorRepository;
+use App\Service\ProfesorFotoUploadService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Annotation\Route;
 
@@ -26,22 +32,27 @@ class AdminProfesorController extends AbstractController
     /**
      * @Route("/admin/profesores/nuevo", name="admin_profesor_new")
      */
-    public function nuevo(Request $request, EntityManagerInterface $em, UserPasswordHasherInterface $hasher, ProfesorRepository $profesores): Response
-    {
+    public function nuevo(
+        Request $request,
+        EntityManagerInterface $em,
+        UserPasswordHasherInterface $hasher,
+        ProfesorRepository $profesores,
+        ProfesorFotoUploadService $fotos
+    ): Response {
         $error = null;
         $data = ['dni' => '', 'nombre' => '', 'apellido' => ''];
 
         if ($request->isMethod('POST')) {
             $data = $this->datos($request);
-            $error = $this->validar($data, $request, $profesores, null, true);
+            $error = $this->validar($data, $request, $profesores, null, true, $fotos);
             if (null === $error) {
                 $profesor = new Profesor();
-                $this->aplicar($profesor, $data, $request, $hasher, true);
+                $this->aplicar($profesor, $data, $request, $hasher, true, $fotos);
                 $em->persist($profesor);
                 $em->flush();
                 $this->addFlash('success', 'Profesor creado.');
 
-                return $this->redirectToRoute('admin_profesor_index');
+                return $this->redirectToRoute('admin_profesor_show', ['id' => $profesor->getId()]);
             }
         }
 
@@ -54,10 +65,39 @@ class AdminProfesorController extends AbstractController
     }
 
     /**
-     * @Route("/admin/profesores/{id}/editar", name="admin_profesor_edit")
+     * @Route("/admin/profesores/{id}", name="admin_profesor_show", requirements={"id"="\d+"})
      */
-    public function editar(Profesor $profesor, Request $request, EntityManagerInterface $em, UserPasswordHasherInterface $hasher, ProfesorRepository $profesores): Response
-    {
+    public function show(
+        int $id,
+        ProfesorRepository $profesores,
+        AsistenciaRepository $asistencias,
+        JustificacionRepository $justificaciones,
+        HorarioProfesorRepository $horarios
+    ): Response {
+        $profesor = $profesores->findOneWithAsignaciones($id);
+        if (!$profesor) {
+            throw new NotFoundHttpException('Profesor no encontrado.');
+        }
+
+        return $this->render('admin/profesor/show.html.twig', [
+            'profesor' => $profesor,
+            'asistencias' => $asistencias->findByProfesorOrdered($profesor),
+            'justificaciones' => $justificaciones->findByProfesorOrdered($profesor),
+            'horarios' => $horarios->findByProfesorOrdered($profesor),
+        ]);
+    }
+
+    /**
+     * @Route("/admin/profesores/{id}/editar", name="admin_profesor_edit", requirements={"id"="\d+"})
+     */
+    public function editar(
+        Profesor $profesor,
+        Request $request,
+        EntityManagerInterface $em,
+        UserPasswordHasherInterface $hasher,
+        ProfesorRepository $profesores,
+        ProfesorFotoUploadService $fotos
+    ): Response {
         $error = null;
         $data = [
             'dni' => $profesor->getDni(),
@@ -67,13 +107,13 @@ class AdminProfesorController extends AbstractController
 
         if ($request->isMethod('POST')) {
             $data = $this->datos($request);
-            $error = $this->validar($data, $request, $profesores, $profesor, false);
+            $error = $this->validar($data, $request, $profesores, $profesor, false, $fotos);
             if (null === $error) {
-                $this->aplicar($profesor, $data, $request, $hasher, false);
+                $this->aplicar($profesor, $data, $request, $hasher, false, $fotos);
                 $em->flush();
                 $this->addFlash('success', 'Profesor actualizado.');
 
-                return $this->redirectToRoute('admin_profesor_index');
+                return $this->redirectToRoute('admin_profesor_show', ['id' => $profesor->getId()]);
             }
         }
 
@@ -86,21 +126,26 @@ class AdminProfesorController extends AbstractController
     }
 
     /**
-     * @Route("/admin/profesores/{id}/estado", name="admin_profesor_estado", methods={"POST"})
+     * @Route("/admin/profesores/{id}/estado", name="admin_profesor_estado", methods={"POST"}, requirements={"id"="\d+"})
      */
     public function estado(Profesor $profesor, Request $request, EntityManagerInterface $em): Response
     {
+        $volver = (string) $request->request->get('_redirect', '');
+        $destino = 'show' === $volver
+            ? $this->redirectToRoute('admin_profesor_show', ['id' => $profesor->getId()])
+            : $this->redirectToRoute('admin_profesor_index');
+
         if (!$this->isCsrfTokenValid('profesor_estado_'.$profesor->getId(), (string) $request->request->get('_token'))) {
             $this->addFlash('error', 'La solicitud no es válida.');
 
-            return $this->redirectToRoute('admin_profesor_index');
+            return $destino;
         }
 
         $profesor->setIsActive(!$profesor->getIsActive());
         $em->flush();
         $this->addFlash('success', $profesor->getIsActive() ? 'Profesor reactivado.' : 'Profesor dado de baja.');
 
-        return $this->redirectToRoute('admin_profesor_index');
+        return $destino;
     }
 
     private function datos(Request $request): array
@@ -112,8 +157,14 @@ class AdminProfesorController extends AbstractController
         ];
     }
 
-    private function validar(array $data, Request $request, ProfesorRepository $profesores, ?Profesor $actual, bool $passwordObligatoria): ?string
-    {
+    private function validar(
+        array $data,
+        Request $request,
+        ProfesorRepository $profesores,
+        ?Profesor $actual,
+        bool $passwordObligatoria,
+        ProfesorFotoUploadService $fotos
+    ): ?string {
         if (!$this->isCsrfTokenValid('profesor_form', (string) $request->request->get('_token'))) {
             return 'La solicitud no es válida.';
         }
@@ -140,11 +191,24 @@ class AdminProfesorController extends AbstractController
             return 'La contraseña debe tener al menos 6 caracteres.';
         }
 
+        /** @var UploadedFile|null $foto */
+        $foto = $request->files->get('foto');
+        $errorFoto = $fotos->validate($foto);
+        if (null !== $errorFoto) {
+            return $errorFoto;
+        }
+
         return null;
     }
 
-    private function aplicar(Profesor $profesor, array $data, Request $request, UserPasswordHasherInterface $hasher, bool $passwordObligatoria): void
-    {
+    private function aplicar(
+        Profesor $profesor,
+        array $data,
+        Request $request,
+        UserPasswordHasherInterface $hasher,
+        bool $passwordObligatoria,
+        ProfesorFotoUploadService $fotos
+    ): void {
         $profesor->setDni($data['dni']);
         $profesor->setNombre($data['nombre']);
         $profesor->setApellido($data['apellido']);
@@ -152,6 +216,21 @@ class AdminProfesorController extends AbstractController
         $password = (string) $request->request->get('password', '');
         if ('' !== $password || $passwordObligatoria) {
             $profesor->setPassword($hasher->hashPassword($profesor, $password));
+        }
+
+        if ($request->request->getBoolean('quitar_foto') && $profesor->getFoto()) {
+            $fotos->delete($profesor->getFoto());
+            $profesor->setFoto(null);
+        }
+
+        /** @var UploadedFile|null $foto */
+        $foto = $request->files->get('foto');
+        if ($foto) {
+            $anterior = $profesor->getFoto();
+            $profesor->setFoto($fotos->upload($foto));
+            if ($anterior) {
+                $fotos->delete($anterior);
+            }
         }
     }
 }
