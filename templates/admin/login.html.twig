@@ -5,12 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Acceso administración · E.P.E.T N1</title>
     <link rel="stylesheet" href="{{ asset('css/app.css') }}">
+    <link rel="icon" href="{{ asset('uploads/logo/logo-epet-n1.png') }}" type="image/png">
 </head>
 <body>
     <main class="auth-shell">
         <section class="auth-card">
             <div class="auth-card__brand">
-                {% include 'partials/college_logo.html.twig' with { logo_variant: 'full', logo_href: path('home') } only %}
+                {% include 'partials/college_logo.html.twig' with { logo_variant: 'hero', logo_href: path('home') } only %}
             </div>
             <h1>Administración</h1>
             <p class="meta">Ingresá con tu usuario institucional.</p>

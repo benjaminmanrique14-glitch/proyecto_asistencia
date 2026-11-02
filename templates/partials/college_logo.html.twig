@@ -1,26 +1,28 @@
-{#
-  Logo institucional.
-  Para el logo final, reemplazá el bloque SVG por:
-  <img src="{{ asset('images/logo-colegio.svg') }}" alt="{{ colegio_nombre }}" class="college-logo__mark">
-#}
+{# Logo institucional E.P.E.T. N°1 #}
 {% set colegio_nombre = colegio_nombre|default('E.P.E.T N1') %}
 {% set colegio_tagline = colegio_tagline|default('Sistema de asistencia docente') %}
 {% set logo_variant = logo_variant|default('full') %}
+{% set logo_src = asset('uploads/logo/logo-epet-n1.png') %}
+{% set show_name = logo_variant in ['full', 'compact'] %}
+{% set show_tagline = logo_variant in ['full', 'hero'] %}
 
 <a class="college-logo college-logo--{{ logo_variant }}" href="{{ logo_href|default('#') }}" {% if logo_href is not defined or logo_href == '#' %}aria-current="page"{% endif %}>
-    <span class="college-logo__mark" aria-hidden="true">
-        {# Isotipo provisorio: escudo + libro #}
-        <svg viewBox="0 0 48 48" width="40" height="40" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect x="2" y="2" width="44" height="44" rx="12" fill="currentColor" opacity="0.12"/>
-            <path d="M24 8.5L38 14.5V22.8C38 31.2 32.2 38.1 24 40.5C15.8 38.1 10 31.2 10 22.8V14.5L24 8.5Z" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/>
-            <path d="M17 22.5C19.4 20.8 21.7 20 24 20C26.3 20 28.6 20.8 31 22.5V29.5C28.6 27.8 26.3 27 24 27C21.7 27 19.4 27.8 17 29.5V22.5Z" fill="currentColor"/>
-            <path d="M24 20V27" stroke="#0EA5E9" stroke-width="2" stroke-linecap="round"/>
-        </svg>
+    <span class="college-logo__mark">
+        <img
+            class="college-logo__img"
+            src="{{ logo_src }}"
+            alt="{{ colegio_nombre }} · La Rioja"
+            width="500"
+            height="500"
+            decoding="async"
+        >
     </span>
-    {% if logo_variant != 'mark' %}
+    {% if show_name or show_tagline %}
         <span class="college-logo__text">
-            <span class="college-logo__name">{{ colegio_nombre }}</span>
-            {% if logo_variant == 'full' %}
+            {% if show_name %}
+                <span class="college-logo__name">{{ colegio_nombre }}</span>
+            {% endif %}
+            {% if show_tagline %}
                 <span class="college-logo__tagline">{{ colegio_tagline }}</span>
             {% endif %}
         </span>

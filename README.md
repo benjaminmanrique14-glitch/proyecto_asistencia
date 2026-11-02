@@ -27,5 +27,5 @@ Abrí http://127.0.0.1:8000
 
 | Apartado | URL | Credenciales |
 |---|---|---|
-| Ingreso (profesores) | `/totem/login` | DNI del profesor / `demo1234` (demos) |
+| Ingreso (profesores) | `/totem/login` | DNI del profesor (desde la cuenta admin se pueden ver los DNI) / `demo1234` (demos) |
 | Administración | `/admin/login` | `admin` / `Colegio2026` |

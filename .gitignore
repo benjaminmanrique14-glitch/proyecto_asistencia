@@ -13,6 +13,8 @@
 /.vscode/
 /public/uploads/*
 !/public/uploads/.gitkeep
+!/public/uploads/logo/
+!/public/uploads/logo/**
 !/public/uploads/profesores/
 /public/uploads/profesores/*
 !/public/uploads/profesores/.gitkeep

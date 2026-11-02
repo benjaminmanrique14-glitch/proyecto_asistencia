@@ -88,6 +88,28 @@ p { margin: 0 0 0.75rem; }
     flex-shrink: 0;
     color: currentColor;
 }
+.college-logo__img {
+    display: block;
+    width: 52px;
+    height: auto;
+    object-fit: contain;
+}
+.college-logo--compact .college-logo__img { width: 40px; }
+.college-logo--mark .college-logo__img { width: 36px; }
+.college-logo--full .college-logo__img { width: 56px; }
+.college-logo--hero {
+    flex-direction: column;
+    justify-content: center;
+    text-align: center;
+    gap: 0.65rem;
+    width: 100%;
+}
+.college-logo--hero .college-logo__img {
+    width: min(168px, 46vw);
+}
+.college-logo--hero .college-logo__text {
+    align-items: center;
+}
 .college-logo__text {
     display: flex;
     flex-direction: column;
@@ -356,7 +378,15 @@ textarea { min-height: 110px; resize: vertical; }
     box-shadow: var(--shadow);
     padding: 1.75rem;
 }
-.auth-card__brand { margin-bottom: 1.25rem; }
+.auth-card__brand {
+    margin-bottom: 1.25rem;
+    display: flex;
+    justify-content: center;
+}
+.site-footer .college-logo__img { width: 36px; }
+.side .college-logo__img { width: 58px; }
+.totem-bar .college-logo__img { width: 44px; }
+.mobile-header .college-logo__img { width: 42px; }
 .auth-card h1 { margin-bottom: 0.25rem; }
 .home-grid {
     display: grid;
