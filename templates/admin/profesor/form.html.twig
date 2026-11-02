@@ -1,0 +1,38 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}{{ titulo }}{% endblock %}
+{% block topbar_title %}{{ titulo }}{% endblock %}
+
+{% block body %}
+    <div class="page-header">
+        <div>
+            <h1>{{ titulo }}</h1>
+            <p class="meta">Los datos se usan para el login de ingreso y el panel diario.</p>
+        </div>
+        <a class="btn btn-ghost" href="{{ path('admin_profesor_index') }}">Volver al listado</a>
+    </div>
+
+    {% if error %}
+        <div class="alert alert-error" role="alert">{{ error }}</div>
+    {% endif %}
+
+    <form method="post" class="card" style="max-width:560px;">
+        <label for="dni">DNI</label>
+        <input id="dni" name="dni" inputmode="numeric" value="{{ data.dni }}" required>
+
+        <label for="nombre">Nombre</label>
+        <input id="nombre" name="nombre" value="{{ data.nombre }}" required>
+
+        <label for="apellido">Apellido</label>
+        <input id="apellido" name="apellido" value="{{ data.apellido }}" required>
+
+        <label for="password">{{ profesor ? 'Nueva contraseña (vacío para no cambiarla)' : 'Contraseña inicial' }}</label>
+        <input id="password" name="password" type="password" autocomplete="new-password" {{ profesor ? '' : 'required' }}>
+
+        <input type="hidden" name="_token" value="{{ csrf_token('profesor_form') }}">
+        <div class="row-actions" style="margin-top:1.25rem;">
+            <button class="btn" type="submit">Guardar</button>
+            <a class="btn btn-ghost" href="{{ path('admin_profesor_index') }}">Cancelar</a>
+        </div>
+    </form>
+{% endblock %}

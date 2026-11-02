@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Ingreso{% endblock %} · E.P.E.T N1</title>
+    <link rel="stylesheet" href="{{ asset('css/app.css') }}">
+</head>
+<body class="totem">
+    <header class="totem-bar">
+        {% include 'partials/college_logo.html.twig' with {
+            logo_variant: 'compact',
+            logo_href: path('totem_login')
+        } only %}
+        {% if app.user %}
+            <a class="btn btn-ghost" href="{{ path('totem_logout') }}">Cerrar sesión</a>
+        {% endif %}
+    </header>
+    <main class="totem-main">
+        {% block body %}{% endblock %}
+    </main>
+    {% if app.user %}
+        <p class="idle-note">La sesión se cierra sola tras 20 segundos sin tocar la pantalla.</p>
+        <script>
+            (function () {
+                var limite = 20000;
+                var timer;
+                function reset() {
+                    window.clearTimeout(timer);
+                    timer = window.setTimeout(function () {
+                        window.location.href = {{ path('totem_logout')|json_encode|raw }};
+                    }, limite);
+                }
+                ['pointerdown', 'touchstart', 'keydown'].forEach(function (evento) {
+                    document.addEventListener(evento, reset, { passive: true });
+                });
+                reset();
+            })();
+        </script>
+    {% endif %}
+</body>
+</html>

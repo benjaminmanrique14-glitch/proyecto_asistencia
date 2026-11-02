@@ -1,0 +1,28 @@
+{% extends 'totem/base.html.twig' %}
+
+{% block title %}Ingreso{% endblock %}
+
+{% block body %}
+    <section class="card">
+        <p class="badge badge-course">Ingreso</p>
+        <h1>Ingreso de profesor</h1>
+        <p class="meta">Usá tu DNI y contraseña. La pantalla está pensada para uso táctil.</p>
+        {% if error %}
+            <div class="alert alert-error" role="alert">
+                {% if error.messageKey == 'Invalid credentials.' %}
+                    DNI o contraseña incorrectos.
+                {% else %}
+                    {{ error.message }}
+                {% endif %}
+            </div>
+        {% endif %}
+        <form method="post" action="{{ path('totem_login') }}">
+            <label for="dni">DNI</label>
+            <input id="dni" name="dni" inputmode="numeric" autocomplete="username" value="{{ last_username }}" required autofocus>
+            <label for="password">Contraseña</label>
+            <input id="password" name="password" type="password" autocomplete="current-password" required>
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate_totem') }}">
+            <button class="touch btn-accent" type="submit">Entrar</button>
+        </form>
+    </section>
+{% endblock %}

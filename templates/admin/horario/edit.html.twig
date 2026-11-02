@@ -1,0 +1,114 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}Cursos y horarios{% endblock %}
+{% block topbar_title %}Cursos y horarios{% endblock %}
+
+{% block body %}
+    <div class="page-header">
+        <div>
+            <h1>Cursos de {{ profesor.nombreCompleto }}</h1>
+            <p class="meta">Cada curso tiene su propio horario. Divisiones 1ra–3ra: mañana · 4ta–6ta: tarde. Esos días alimentan el cálculo de ausencias.</p>
+        </div>
+        <a class="btn btn-ghost" href="{{ path('admin_profesor_index') }}">Volver</a>
+    </div>
+
+    {% if error %}
+        <div class="alert alert-error" role="alert">{{ error }}</div>
+    {% endif %}
+
+    <form method="post">
+        {% for bloque in bloques %}
+            {% set asignacion = bloque.asignacion %}
+            <section class="curso-block">
+                <div class="cal-nav" style="margin-bottom:0.75rem;">
+                    <h2>
+                        {{ asignacion.etiqueta }}
+                        <span class="badge badge-course">{{ asignacion.division.turnoLabel }}</span>
+                    </h2>
+                    <label class="checkline"><input type="checkbox" name="curso[{{ asignacion.id }}][quitar]" value="1"> Quitar curso</label>
+                </div>
+                {% for numero, nombre in dias %}
+                    {% set horario = bloque.porDia[numero]|default(null) %}
+                    <div class="horario-row">
+                        <label class="checkline">
+                            <input type="checkbox" name="curso[{{ asignacion.id }}][dias][]" value="{{ numero }}" {{ horario ? 'checked' : '' }}>
+                            {{ nombre }}
+                        </label>
+                        <div>
+                            <label>Entrada</label>
+                            <input type="time" name="curso[{{ asignacion.id }}][entrada][{{ numero }}]" value="{{ horario ? horario.horaEntrada|date('H:i') : asignacion.division.horaEntradaSugerida }}">
+                        </div>
+                        <div>
+                            <label>Salida</label>
+                            <input type="time" name="curso[{{ asignacion.id }}][salida][{{ numero }}]" value="{{ horario ? horario.horaSalida|date('H:i') : asignacion.division.horaSalidaSugerida }}">
+                        </div>
+                    </div>
+                {% endfor %}
+            </section>
+        {% else %}
+            <div class="card empty-state" style="margin-bottom:1rem;">
+                <div class="empty-state__icon" aria-hidden="true">📚</div>
+                <strong>Sin cursos asignados</strong>
+                <span>Agregá el primero con el formulario de abajo.</span>
+            </div>
+        {% endfor %}
+
+        <section class="curso-block">
+            <h2>Agregar curso</h2>
+            <div class="horario-row">
+                <div>
+                    <label for="nuevo_curso">Curso</label>
+                    <select id="nuevo_curso" name="nuevo_curso">
+                        <option value="">Sin agregar</option>
+                        {% for curso in cursos %}
+                            <option value="{{ curso.id }}">{{ curso.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label for="nuevo_division">División</label>
+                    <select id="nuevo_division" name="nuevo_division">
+                        <option value="">Sin agregar</option>
+                        {% for division in divisiones %}
+                            <option value="{{ division.id }}">{{ division.nombre }} · {{ division.turnoLabel }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            {% for numero, nombre in dias %}
+                <div class="horario-row">
+                    <label class="checkline">
+                        <input type="checkbox" name="nuevo_dias[]" value="{{ numero }}" checked>
+                        {{ nombre }}
+                    </label>
+                    <div>
+                        <label>Entrada</label>
+                        <input type="time" data-nuevo-entrada name="nuevo_entrada[{{ numero }}]" value="08:00">
+                    </div>
+                    <div>
+                        <label>Salida</label>
+                        <input type="time" data-nuevo-salida name="nuevo_salida[{{ numero }}]" value="12:30">
+                    </div>
+                </div>
+            {% endfor %}
+        </section>
+
+        <input type="hidden" name="_token" value="{{ csrf_token('horario_' ~ profesor.id) }}">
+        <button class="btn btn-accent" type="submit">Guardar cambios</button>
+    </form>
+    <script>
+        (function () {
+            var turnos = {{ turnos|json_encode|raw }};
+            var division = document.getElementById('nuevo_division');
+            division.addEventListener('change', function () {
+                var tarde = turnos[this.value] === 'tarde';
+                document.querySelectorAll('[data-nuevo-entrada]').forEach(function (input) {
+                    input.value = tarde ? '13:10' : '08:00';
+                });
+                document.querySelectorAll('[data-nuevo-salida]').forEach(function (input) {
+                    input.value = tarde ? '17:30' : '12:30';
+                });
+            });
+        })();
+    </script>
+{% endblock %}

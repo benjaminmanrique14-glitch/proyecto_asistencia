@@ -1,0 +1,13 @@
+{% extends 'totem/base.html.twig' %}
+
+{% block title %}Código QR{% endblock %}
+
+{% block body %}
+    <section class="card qr-wrap">
+        <h1>Escaneá el código</h1>
+        <p class="meta">Válido hasta las <strong>{{ qrToken.expiresAt|date('H:i') }}</strong>. El celular debe estar en la misma red Wi‑Fi; después pedirá la contraseña.</p>
+        <img src="{{ qrDataUri }}" alt="Código QR de justificación">
+        <p class="qr-url">{{ url }}</p>
+        <p><a class="btn btn-ghost" href="{{ path('totem_home') }}">Volver</a></p>
+    </section>
+{% endblock %}

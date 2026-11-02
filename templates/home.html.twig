@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Asistencia docente · E.P.E.T N1</title>
+    <link rel="stylesheet" href="{{ asset('css/app.css') }}">
+</head>
+<body>
+    <main class="auth-shell">
+        <section class="auth-card">
+            <div class="auth-card__brand">
+                {% include 'partials/college_logo.html.twig' with { logo_variant: 'full', logo_href: path('home') } only %}
+            </div>
+            <h1>Asistencia de profesores</h1>
+            <p class="meta">Elegí el acceso según tu rol.</p>
+            <div class="home-grid">
+                <a class="btn btn-accent" href="{{ path('totem_login') }}">Ingreso</a>
+                <a class="btn" href="{{ path('admin_login') }}">Panel de administración</a>
+            </div>
+        </section>
+    </main>
+</body>
+</html>

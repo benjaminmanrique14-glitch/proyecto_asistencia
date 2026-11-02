@@ -1,0 +1,151 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}Profesores{% endblock %}
+{% block topbar_title %}Profesores{% endblock %}
+
+{% block body %}
+    <div class="page-header">
+        <div>
+            <h1>Plantel docente</h1>
+            <p class="meta">Alta, baja, cursos y horarios por división.</p>
+        </div>
+        <div class="page-header__actions">
+            <a class="btn btn-accent" href="{{ path('admin_profesor_new') }}">+ Nuevo profesor</a>
+        </div>
+    </div>
+
+    <div class="toolbar">
+        <div class="field">
+            <label for="filtro-profesores">Buscar</label>
+            <input id="filtro-profesores" type="search" placeholder="DNI, nombre o curso…" autocomplete="off">
+        </div>
+        <div class="field">
+            <label for="filtro-estado">Estado</label>
+            <select id="filtro-estado">
+                <option value="">Todos</option>
+                <option value="activo">Activos</option>
+                <option value="baja">De baja</option>
+            </select>
+        </div>
+    </div>
+
+    {% if profesores|length == 0 %}
+        <div class="card empty-state">
+            <div class="empty-state__icon" aria-hidden="true">👤</div>
+            <strong>Todavía no hay profesores</strong>
+            <span>Cargá el primero para empezar a registrar asistencia.</span>
+            <p style="margin-top:1rem;"><a class="btn" href="{{ path('admin_profesor_new') }}">Crear profesor</a></p>
+        </div>
+    {% else %}
+        <div class="table-wrap table-desktop">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>DNI</th>
+                        <th>Apellido y nombre</th>
+                        <th>Cursos</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for profesor in profesores %}
+                        {% set cursosBusqueda = '' %}
+                        {% for asignacion in profesor.asignaciones %}
+                            {% set cursosBusqueda = cursosBusqueda ~ ' ' ~ asignacion.etiqueta %}
+                        {% endfor %}
+                        <tr data-search="{{ (profesor.dni ~ ' ' ~ profesor.nombreCompleto ~ cursosBusqueda)|lower }}"
+                            data-estado="{{ profesor.isActive ? 'activo' : 'baja' }}">
+                            <td><code>{{ profesor.dni }}</code></td>
+                            <td><strong>{{ profesor.nombreCompleto }}</strong></td>
+                            <td>
+                                {% for asignacion in profesor.asignaciones %}
+                                    <span class="badge badge-course">{{ asignacion.etiqueta }}</span>
+                                {% else %}
+                                    <span class="meta">Sin cursos</span>
+                                {% endfor %}
+                            </td>
+                            <td>
+                                {% if profesor.isActive %}
+                                    <span class="badge badge-on">Activo</span>
+                                {% else %}
+                                    <span class="badge badge-off">De baja</span>
+                                {% endif %}
+                            </td>
+                            <td class="row-actions">
+                                <a class="btn btn-ghost btn-sm" href="{{ path('admin_profesor_edit', {id: profesor.id}) }}">Editar</a>
+                                <a class="btn btn-ghost btn-sm" href="{{ path('admin_horario_edit', {id: profesor.id}) }}">Cursos</a>
+                                <form method="post" action="{{ path('admin_profesor_estado', {id: profesor.id}) }}">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('profesor_estado_' ~ profesor.id) }}">
+                                    <button class="btn btn-sm {{ profesor.isActive ? 'btn-danger' : 'btn-ok' }}" type="submit">
+                                        {{ profesor.isActive ? 'Dar de baja' : 'Reactivar' }}
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="teacher-cards" id="teacher-cards">
+            {% for profesor in profesores %}
+                {% set cursosBusqueda = '' %}
+                {% for asignacion in profesor.asignaciones %}
+                    {% set cursosBusqueda = cursosBusqueda ~ ' ' ~ asignacion.etiqueta %}
+                {% endfor %}
+                <article class="teacher-card"
+                         data-search="{{ (profesor.dni ~ ' ' ~ profesor.nombreCompleto ~ cursosBusqueda)|lower }}"
+                         data-estado="{{ profesor.isActive ? 'activo' : 'baja' }}">
+                    <div class="teacher-card__top">
+                        <div>
+                            <div class="teacher-card__name">{{ profesor.nombreCompleto }}</div>
+                            <div class="meta">DNI {{ profesor.dni }}</div>
+                        </div>
+                        {% if profesor.isActive %}
+                            <span class="badge badge-on">Activo</span>
+                        {% else %}
+                            <span class="badge badge-off">De baja</span>
+                        {% endif %}
+                    </div>
+                    <div>
+                        {% for asignacion in profesor.asignaciones %}
+                            <span class="badge badge-course">{{ asignacion.etiqueta }}</span>
+                        {% else %}
+                            <span class="meta">Sin cursos</span>
+                        {% endfor %}
+                    </div>
+                    <div class="row-actions" style="margin-top:0.85rem;">
+                        <a class="btn btn-ghost btn-sm" href="{{ path('admin_profesor_edit', {id: profesor.id}) }}">Editar</a>
+                        <a class="btn btn-ghost btn-sm" href="{{ path('admin_horario_edit', {id: profesor.id}) }}">Cursos</a>
+                        <form method="post" action="{{ path('admin_profesor_estado', {id: profesor.id}) }}">
+                            <input type="hidden" name="_token" value="{{ csrf_token('profesor_estado_' ~ profesor.id) }}">
+                            <button class="btn btn-sm {{ profesor.isActive ? 'btn-danger' : 'btn-ok' }}" type="submit">
+                                {{ profesor.isActive ? 'Dar de baja' : 'Reactivar' }}
+                            </button>
+                        </form>
+                    </div>
+                </article>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <script>
+        (function () {
+            var q = document.getElementById('filtro-profesores');
+            var estado = document.getElementById('filtro-estado');
+            if (!q || !estado) return;
+            function apply() {
+                var text = q.value.trim().toLowerCase();
+                var st = estado.value;
+                document.querySelectorAll('[data-search][data-estado]').forEach(function (el) {
+                    var okText = text === '' || el.getAttribute('data-search').indexOf(text) !== -1;
+                    var okEstado = st === '' || el.getAttribute('data-estado') === st;
+                    el.hidden = !(okText && okEstado);
+                });
+            }
+            q.addEventListener('input', apply);
+            estado.addEventListener('change', apply);
+        })();
+    </script>
+{% endblock %}

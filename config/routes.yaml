@@ -1,0 +1,5 @@
+totem_logout:
+    path: /totem/logout
+
+admin_logout:
+    path: /admin/logout

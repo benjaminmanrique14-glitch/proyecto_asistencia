@@ -1,0 +1,43 @@
+{% extends 'totem/base.html.twig' %}
+
+{% block title %}Asistencia{% endblock %}
+
+{% block body %}
+    <section class="card">
+        <p class="meta">{{ hoy|date('d/m/Y') }}</p>
+        <h1>{{ profesor.nombreCompleto }}</h1>
+
+        {% for message in app.flashes('success') %}
+            <div class="alert alert-success" role="status">{{ message }}</div>
+        {% endfor %}
+        {% for message in app.flashes('error') %}
+            <div class="alert alert-error" role="alert">{{ message }}</div>
+        {% endfor %}
+
+        {% if asistencia and asistencia.horaSalida %}
+            <div class="alert alert-info">
+                Jornada cerrada.
+                <strong>Ingreso {{ asistencia.horaIngreso|date('H:i') }}</strong>
+                ·
+                <strong>Salida {{ asistencia.horaSalida|date('H:i') }}</strong>
+            </div>
+            <span class="status-chip status-chip--closed">Registro completo</span>
+        {% else %}
+            <form method="post" action="{{ path('totem_marcar') }}">
+                <input type="hidden" name="_token" value="{{ csrf_token('totem_marcar') }}">
+                {% if asistencia %}
+                    <p class="meta">
+                        <span class="status-chip status-chip--present">Ingreso a las {{ asistencia.horaIngreso|date('H:i') }}</span>
+                    </p>
+                    <button class="touch btn-accent" type="submit">Marcar salida</button>
+                {% else %}
+                    <button class="touch btn-ok" type="submit">Marcar ingreso</button>
+                {% endif %}
+            </form>
+        {% endif %}
+
+        <div class="totem-actions">
+            <a class="btn btn-ghost" href="{{ path('totem_qr') }}">Justificar inasistencia / retiro temprano</a>
+        </div>
+    </section>
+{% endblock %}

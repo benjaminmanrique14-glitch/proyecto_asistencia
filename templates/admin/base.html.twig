@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Administración{% endblock %} · E.P.E.T N1</title>
+    <link rel="stylesheet" href="{{ asset('css/app.css') }}">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'><rect width='48' height='48' rx='12' fill='%230F172A'/><path d='M24 10L36 15.5V23C36 30 31 35.5 24 37.5C17 35.5 12 30 12 23V15.5L24 10Z' fill='%230EA5E9'/></svg>">
+</head>
+<body>
+    <div class="admin-shell">
+        <div class="side-backdrop" id="side-backdrop" hidden></div>
+        <aside class="side" id="admin-side">
+            {% include 'partials/college_logo.html.twig' with {
+                logo_variant: 'full',
+                logo_href: path('admin_dashboard')
+            } only %}
+            {% set route = app.request.attributes.get('_route') %}
+            <nav class="side__nav" aria-label="Administración">
+                <a class="{{ route starts with 'admin_dashboard' ? 'is-active' : '' }}" href="{{ path('admin_dashboard') }}">
+                    <span aria-hidden="true">▣</span> Calendario diario
+                </a>
+                <a class="{{ route starts with 'admin_profesor' or route starts with 'admin_horario' ? 'is-active' : '' }}" href="{{ path('admin_profesor_index') }}">
+                    <span aria-hidden="true">☰</span> Profesores
+                </a>
+            </nav>
+            <div class="side__footer">
+                <a href="{{ path('admin_logout') }}">Cerrar sesión</a>
+            </div>
+        </aside>
+
+        <div class="admin-main">
+            <header class="admin-topbar">
+                <button type="button" class="admin-menu-toggle" id="admin-menu-toggle" aria-label="Abrir menú" aria-controls="admin-side" aria-expanded="false">
+                    ☰
+                </button>
+                <div>
+                    <strong>{% block topbar_title %}Panel institucional{% endblock %}</strong>
+                    <div class="meta">Gestión de asistencia docente</div>
+                </div>
+                <span class="badge badge-course">Admin</span>
+            </header>
+
+            <main class="admin-content">
+                <div class="flash-stack">
+                    {% for message in app.flashes('success') %}
+                        <div class="alert alert-success" role="status">{{ message }}</div>
+                    {% endfor %}
+                    {% for message in app.flashes('error') %}
+                        <div class="alert alert-error" role="alert">{{ message }}</div>
+                    {% endfor %}
+                </div>
+                {% block body %}{% endblock %}
+            </main>
+
+            <footer class="site-footer">
+                {% include 'partials/college_logo.html.twig' with {
+                    logo_variant: 'compact',
+                    logo_href: path('admin_dashboard')
+                } only %}
+                <span>Asistencia docente · uso interno</span>
+            </footer>
+        </div>
+    </div>
+    <script>
+        (function () {
+            var side = document.getElementById('admin-side');
+            var toggle = document.getElementById('admin-menu-toggle');
+            var backdrop = document.getElementById('side-backdrop');
+            if (!side || !toggle || !backdrop) return;
+            function setOpen(open) {
+                side.classList.toggle('is-open', open);
+                backdrop.classList.toggle('is-open', open);
+                backdrop.hidden = !open;
+                toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+            }
+            toggle.addEventListener('click', function () {
+                setOpen(!side.classList.contains('is-open'));
+            });
+            backdrop.addEventListener('click', function () { setOpen(false); });
+        })();
+    </script>
+</body>
+</html>

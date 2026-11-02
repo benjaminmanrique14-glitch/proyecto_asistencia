@@ -1,0 +1,178 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}Calendario diario{% endblock %}
+{% block topbar_title %}Calendario diario{% endblock %}
+
+{% block body %}
+    {% set meses = {1:'Enero',2:'Febrero',3:'Marzo',4:'Abril',5:'Mayo',6:'Junio',7:'Julio',8:'Agosto',9:'Septiembre',10:'Octubre',11:'Noviembre',12:'Diciembre'} %}
+    {% set anterior = mes|date_modify('-1 month') %}
+    {% set siguiente = mes|date_modify('+1 month') %}
+
+    <div class="page-header">
+        <div>
+            <h1>{{ meses[mes|date('n')] }} {{ mes|date('Y') }}</h1>
+            <p class="meta">Seleccioná un día para ver presentes, ausentes y justificados.</p>
+        </div>
+        <div class="page-header__actions">
+            <a class="btn btn-ghost" href="{{ path('admin_dashboard', {mes: anterior|date('Y-m'), fecha: fecha|date('Y-m-d')}) }}">← Mes anterior</a>
+            <a class="btn btn-ghost" href="{{ path('admin_dashboard', {mes: siguiente|date('Y-m'), fecha: fecha|date('Y-m-d')}) }}">Mes siguiente →</a>
+        </div>
+    </div>
+
+    <div class="stat-grid" aria-label="Resumen del día">
+        <article class="stat-card stat-card--present">
+            <div class="stat-card__label"><span class="status-dot status-dot--present"></span> Presentes</div>
+            <div class="stat-card__value">{{ presentes|length }}</div>
+        </article>
+        <article class="stat-card stat-card--absent">
+            <div class="stat-card__label"><span class="status-dot status-dot--absent"></span> Ausentes</div>
+            <div class="stat-card__value">{{ ausentes|length }}</div>
+        </article>
+        <article class="stat-card stat-card--justified">
+            <div class="stat-card__label"><span class="status-dot status-dot--justified"></span> Justificados</div>
+            <div class="stat-card__value">{{ justificados|length }}</div>
+        </article>
+    </div>
+
+    <section class="panel" aria-label="Calendario">
+        <div class="panel__head">
+            <h2>Calendario</h2>
+            <span class="badge badge-course">Hoy {{ hoy|date('d/m/Y') }}</span>
+        </div>
+        <div class="panel__body">
+            <div class="calendar">
+                {% for nombre in ['L','M','X','J','V','S','D'] %}
+                    <div class="calendar__dow">{{ nombre }}</div>
+                {% endfor %}
+                {% for dia in dias %}
+                    {% set iso = dia.fecha|date('Y-m-d') %}
+                    {% set futuro = dia.fecha > hoy %}
+                    {% if futuro or not dia.enMes %}
+                        <span class="{{ dia.enMes ? '' : 'out' }}">{{ dia.fecha|date('j') }}</span>
+                    {% else %}
+                        <a class="{{ iso == fecha|date('Y-m-d') ? 'selected' : '' }} {{ iso == hoy|date('Y-m-d') ? 'today' : '' }}"
+                           href="{{ path('admin_dashboard', {fecha: iso, mes: dia.fecha|date('Y-m')}) }}"
+                           aria-label="Ver {{ dia.fecha|date('d/m/Y') }}"
+                           {% if iso == fecha|date('Y-m-d') %}aria-current="date"{% endif %}>
+                            {{ dia.fecha|date('j') }}
+                        </a>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+    <div class="page-header" style="margin-top:1.25rem;">
+        <div>
+            <h2>Detalle del {{ fecha|date('d/m/Y') }}</h2>
+            {% if esFinDeSemana %}
+                <p class="meta">Fin de semana: no hay jornada escolar cargada en los horarios de lunes a viernes.</p>
+            {% else %}
+                <p class="meta">Filtrá por nombre o curso para encontrar rápido a un docente.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="toolbar">
+        <div class="field">
+            <label for="filtro-asistencia">Buscar docente o curso</label>
+            <input id="filtro-asistencia" type="search" placeholder="Ej. Benítez, 3° 1ra…" autocomplete="off">
+        </div>
+    </div>
+
+    <div class="lists" id="listas-asistencia">
+        <section class="panel panel--present">
+            <div class="panel__head">
+                <h3><span class="badge badge-present">Presente</span> Asistieron</h3>
+                <strong>{{ presentes|length }}</strong>
+            </div>
+            <div class="panel__body">
+                {% if presentes|length %}
+                    <ul class="attendance-list">
+                        {% for asistencia in presentes %}
+                            <li data-search="{{ asistencia.profesor.nombreCompleto|lower }}">
+                                <div class="attendance-list__name">{{ asistencia.profesor.nombreCompleto }}</div>
+                                <div class="meta">
+                                    <span class="status-chip status-chip--present">Ingreso {{ asistencia.horaIngreso|date('H:i') }}</span>
+                                    {% if asistencia.horaSalida %}
+                                        <span class="status-chip status-chip--exit">Salida {{ asistencia.horaSalida|date('H:i') }}</span>
+                                    {% endif %}
+                                </div>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <div class="empty-state">
+                        <div class="empty-state__icon" aria-hidden="true">✓</div>
+                        <strong>Sin ingresos</strong>
+                        <span>Nadie marcó asistencia este día.</span>
+                    </div>
+                {% endif %}
+            </div>
+        </section>
+
+        <section class="panel panel--absent">
+            <div class="panel__head">
+                <h3><span class="badge badge-absent">Ausente</span> Ausentes</h3>
+                <strong>{{ ausentes|length }}</strong>
+            </div>
+            <div class="panel__body">
+                {% if ausentes|length %}
+                    <ul class="attendance-list">
+                        {% for profesor in ausentes %}
+                            <li data-search="{{ (profesor.nombreCompleto ~ ' ' ~ (cursosDelDia[profesor.id]|default([])|join(' ')))|lower }}">
+                                <div class="attendance-list__name">{{ profesor.nombreCompleto }}</div>
+                                <div class="meta">{{ cursosDelDia[profesor.id]|default([])|join(' · ') }}</div>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <div class="empty-state">
+                        <div class="empty-state__icon" aria-hidden="true">◎</div>
+                        <strong>Sin ausencias</strong>
+                        <span>No hay ausencias sin justificar.</span>
+                    </div>
+                {% endif %}
+            </div>
+        </section>
+
+        <section class="panel panel--justified">
+            <div class="panel__head">
+                <h3><span class="badge badge-justified">Justificado</span> Justificados</h3>
+                <strong>{{ justificados|length }}</strong>
+            </div>
+            <div class="panel__body">
+                {% if justificados|length %}
+                    <ul class="attendance-list">
+                        {% for justificacion in justificados %}
+                            <li data-search="{{ (justificacion.profesor.nombreCompleto ~ ' ' ~ justificacion.tipoLabel)|lower }}">
+                                <div class="attendance-list__name">{{ justificacion.profesor.nombreCompleto }}</div>
+                                <div class="meta">{{ justificacion.tipoLabel }}</div>
+                                <a class="btn btn-ghost btn-sm" style="margin-top:0.5rem;" href="{{ asset(justificacion.archivoUrl) }}" target="_blank" rel="noopener">Ver archivo</a>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <div class="empty-state">
+                        <div class="empty-state__icon" aria-hidden="true">📄</div>
+                        <strong>Sin justificaciones</strong>
+                        <span>No hay registros para esta fecha.</span>
+                    </div>
+                {% endif %}
+            </div>
+        </section>
+    </div>
+
+    <script>
+        (function () {
+            var input = document.getElementById('filtro-asistencia');
+            if (!input) return;
+            input.addEventListener('input', function () {
+                var q = this.value.trim().toLowerCase();
+                document.querySelectorAll('#listas-asistencia [data-search]').forEach(function (item) {
+                    item.hidden = q !== '' && item.getAttribute('data-search').indexOf(q) === -1;
+                });
+            });
+        })();
+    </script>
+{% endblock %}
